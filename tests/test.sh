@@ -1,0 +1,1 @@
+django-admin.py test customads geoads
