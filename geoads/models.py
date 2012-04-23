@@ -23,7 +23,8 @@ class AdPicture(models.Model):
                           thumbnail_size=(100, 100))
     title = models.CharField('Description de la photo', max_length = 255, 
                              null = True, blank = True)
-
+    class Meta:
+        db_table = 'ads_adpicture'
 
 class AdContact(models.Model):
     """
@@ -37,6 +38,8 @@ class AdContact(models.Model):
                                                fk_field="object_pk")
     message = models.TextField('Votre message')
 
+    class Meta:
+        db_table = 'ads_adcontact'
 
 class AdSearch(models.Model):
     """
@@ -49,7 +52,8 @@ class AdSearch(models.Model):
     user = models.ForeignKey(User)
     create_date = models.DateTimeField(auto_now_add = True)  
     content_type = models.ForeignKey(ContentType)
-
+    class Meta:
+        db_table = 'ads_adsearch'
 
 class Ad(models.Model):
     """
