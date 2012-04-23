@@ -2,7 +2,7 @@
 """ Ads app admin module """
 
 from django.contrib import admin
-from ads.models import AdSearch, AdContact, AdPicture
+from geoads.models import AdSearch, AdContact, AdPicture
 
 
 admin.site.register(AdSearch)
