@@ -104,8 +104,8 @@ class SpecificRangeWidget(forms.MultiWidget):
     Specific Range Widget, a range widget with min and max inputs
     """
     def __init__(self, attrs=None):
-        widgets = (forms.TextInput(attrs={'placeholder':'min'}), 
-                   forms.TextInput(attrs={'placeholder':'max'}))
+        widgets = (forms.TextInput(attrs={'placeholder':'min', 'class':'input-mini'}), 
+                   forms.TextInput(attrs={'placeholder':'max', 'class':'input-mini'}))
         super(SpecificRangeWidget, self).__init__(widgets, attrs)
 
     def decompress(self, value):
