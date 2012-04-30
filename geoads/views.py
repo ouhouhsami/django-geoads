@@ -184,6 +184,7 @@ class AdDetailView(DetailView):
     def post(self, request, *args, **kwargs):
         """ used for contact message between users """
         contact_form = AdContactForm(request.POST)
+        sent_mail = False
         if contact_form.is_valid():
             instance = contact_form.save(commit = False)
             instance.content_object = self.get_object()
@@ -198,7 +199,6 @@ class AdDetailView(DetailView):
             sent_mail = True
             messages.add_message(request, messages.INFO, 
                                  _(u'Votre message a bien été envoyé.'))
-
         return render_to_response(self.template_name, {'ad':self.get_object(), 
                                   'contact_form':contact_form, 
                                   'sent_mail':sent_mail}, 
