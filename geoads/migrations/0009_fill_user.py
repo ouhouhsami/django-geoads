@@ -9,8 +9,6 @@ class Migration(DataMigration):
     def forwards(self, orm):
         "Write your forwards methods here."
         try:
-            from sites.achetersanscom.ads.models import *
-            from sites.louersanscom.ads.models import *
             for home in orm.HomeForSaleAd.objects.all():
                 home.user = home.user_profile.user
                 home.save()
