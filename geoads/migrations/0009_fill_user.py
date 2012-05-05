@@ -8,15 +8,16 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        try:
-            for home in orm.HomeForSaleAd.objects.all():
-                home.user = home.user_profile.user
-                home.save()
-            for home in orm.HomeForRentAd.objects.all():
-                home.user = home.user_profile.user
-                home.save()
-        except:
-            print 'error'
+        pass
+        #try:
+        #    for home in orm.HomeForSaleAd.objects.all():
+        #        home.user = home.user_profile.user
+        #        home.save()
+        #    for home in orm.HomeForRentAd.objects.all():
+        #        home.user = home.user_profile.user
+        #        home.save()
+        #except:
+        #    print 'error'
 
     def backwards(self, orm):
         "Write your backwards methods here."
