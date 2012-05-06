@@ -56,7 +56,7 @@ def account_url(request):
         url = settings.ADS_PROFILE_URL % (request.user.username)
     except:
         url = settings.ADS_PROFILE_URL
-
+    return url
 
 class AdSearchView(ListView):
     """
