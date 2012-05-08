@@ -7,5 +7,6 @@ script:
   - python manage.py test customads geoads
 before_install:
   - sudo apt-get update
-  - sudo apt-get install libgeos-dev libproj-dev
-  - psql -c 'create database geoads_db;' -U postgres
+  - sudo apt-get install gdal-bin libproj-dev postgis postgresql-9.1-postgis
+  - sudo bash ./create_template_postgis-1.5.sh
+  - createdb -T template_postgis geoads_db -U postgres
