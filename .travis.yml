@@ -8,3 +8,4 @@ script:
 before_install:
   - sudo apt-get update
   - sudo apt-get install libgeos-dev libproj-dev
+  - psql -c 'create database geoads_db;' -U postgres
