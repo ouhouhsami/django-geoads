@@ -4,6 +4,7 @@ python:
 install: pip install -r requirements.txt  --use-mirrors
 script: 
   - cd tests
+  - python setup.py
   - python manage.py test customads geoads
 before_install:
   - sudo apt-get update
