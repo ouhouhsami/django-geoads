@@ -1,1 +1,1 @@
-django-admin.py test customads geoads
+django-admin.py test customads geoads --settings=tests.settings
