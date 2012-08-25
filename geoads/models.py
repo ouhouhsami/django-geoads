@@ -19,12 +19,14 @@ class AdPicture(models.Model):
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-    image = StdImageField(upload_to="pictures/", size=(640, 500), 
+    image = StdImageField(upload_to="pictures/", size=(640, 500),
                           thumbnail_size=(100, 100))
-    title = models.CharField('Description de la photo', max_length = 255, 
-                             null = True, blank = True)
+    title = models.CharField('Description de la photo', max_length=255,
+                             null=True, blank=True)
+
     class Meta:
         db_table = 'ads_adpicture'
+
 
 class AdContact(models.Model):
     """
@@ -41,19 +43,22 @@ class AdContact(models.Model):
     class Meta:
         db_table = 'ads_adcontact'
 
+
 class AdSearch(models.Model):
     """
     AdSearch base
 
-    Application using this need to have a proxy model 
+    Application using this need to have a proxy model
     to define unicode string repr of each AdSearch depending on ad fields.
     """
     search = models.CharField(max_length=2550)
     user = models.ForeignKey(User)
-    create_date = models.DateTimeField(auto_now_add = True)  
+    create_date = models.DateTimeField(auto_now_add=True)
     content_type = models.ForeignKey(ContentType)
+
     class Meta:
         db_table = 'ads_adsearch'
+
 
 class Ad(models.Model):
     """
@@ -61,28 +66,28 @@ class Ad(models.Model):
 
     """
     user = models.ForeignKey(User)
-    slug = AutoSlugField(populate_from='get_full_description', 
+    slug = AutoSlugField(populate_from='get_full_description',
                          always_update=True, unique=True)
     description = models.TextField("", null=True, blank=True)
-    user_entered_address = models.CharField("Adresse", max_length=2550, 
+    user_entered_address = models.CharField("Adresse", max_length=2550,
             help_text="Adresse complète, ex. : <i>5 rue de Verneuil Paris</i>")
     address = JSONField(null=True, blank=True)
     location = models.PointField(srid=900913)
     pictures = generic.GenericRelation(AdPicture)
-    update_date = models.DateTimeField(auto_now = True)
-    create_date = models.DateTimeField(auto_now_add = True) 
-    delete_date = models.DateTimeField(null = True, blank = True)
+    update_date = models.DateTimeField(auto_now=True)
+    create_date = models.DateTimeField(auto_now_add=True)
+    delete_date = models.DateTimeField(null=True, blank=True)
     visible = models.BooleanField()
 
     objects = models.GeoManager()
-    
+
     def get_full_description(self, instance=None):
         """return a resume description for slug"""
         return self.slug
 
     class Meta:
         abstract = True
-    
+
     def __unicode__(self):
         return self.slug
 

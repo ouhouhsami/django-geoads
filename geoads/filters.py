@@ -4,11 +4,12 @@
 from django.contrib.gis.geos import fromstr
 from django_filters.filters import Filter
 
-import floppyforms 
+import floppyforms
 
 
 class LocationFilter(Filter):
-    """Location filter
+    """
+    Location filter
     Used for geo filtering inside shape
     """
     field_class = floppyforms.gis.PolygonField
@@ -21,8 +22,10 @@ class LocationFilter(Filter):
             value = fromstr(value)
             return qs.filter(**{'%s__%s' % (self.name, lookup): value})
 
+
 class BooleanForNumberFilter(Filter):
-    """Boolean for number filter
+    """
+    Boolean for number filter
     Used to filter if a number field is set or not (null or not)
     """
     def filter(self, qs, value):

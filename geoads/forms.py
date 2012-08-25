@@ -11,11 +11,14 @@ from moderation.forms import BaseModeratedObjectForm
 from geoads.models import AdPicture, AdContact
 from geoads.widgets import ImageWidget
 
+
 class AdPictureForm(ModelForm):
     """Ad picture form"""
     image = forms.ImageField(widget=ImageWidget(), required=False)
+
     class Meta:
         model = AdPicture
+
 
 class AdContactForm(ModelForm):
     """Ad contact form"""
@@ -23,12 +26,13 @@ class AdContactForm(ModelForm):
         model = AdContact
         exclude = ['user', 'content_type', 'object_pk']
 
+
 class BaseAdForm(BaseModeratedObjectForm, ModelForm):
     """Base ad form
     Use it with your own Ad instance
     """
     def clean(self):
-        if self.cleaned_data.has_key('user_entered_address'):
+        if 'user_entered_address' in self.cleaned_data:
             self.cleaned_data['address'] = self.address
             self.cleaned_data['location'] = self.location
         return self.cleaned_data
@@ -36,7 +40,7 @@ class BaseAdForm(BaseModeratedObjectForm, ModelForm):
     def clean_user_entered_address(self):
         data = self.cleaned_data['user_entered_address']
         try:
-            geocode = Geocoder.geocode(data.encode('ascii','ignore'))
+            geocode = Geocoder.geocode(data.encode('ascii', 'ignore'))
             self.address = geocode.raw
             coordinates = geocode[0].coordinates
             pnt = Point(coordinates[1], coordinates[0], srid=900913)
@@ -44,5 +48,6 @@ class BaseAdForm(BaseModeratedObjectForm, ModelForm):
         except GeocoderError:
             raise forms.ValidationError(u"Indiquer une adresse valide")
         return data
+
     class Meta:
         exclude = ('user', 'delete_date', 'location', 'address')

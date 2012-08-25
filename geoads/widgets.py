@@ -4,6 +4,7 @@
 from django import forms
 from django.utils.encoding import force_unicode
 from django.utils.translation import ugettext
+from django.utils.safestring import mark_safe
 
 from floppyforms.widgets import Input, NumberInput
 import floppyforms
@@ -12,7 +13,7 @@ import floppyforms
 class ImageWidget(forms.FileInput):
     """
     Image widget
-    Used for rendering ImagieField in Ad form
+    Used for rendering ImageField in Ad form
     """
     template = '%(input)s<br /><a href="%(image)s" target="_blank"><img src="%(image_thumbnail)s" /></a>'
 
@@ -69,6 +70,7 @@ class GooglePolygonWidget(Input):
     Map polygon widget (using Google map api v3)
     """
     template_name = 'floppyforms/gis/poly_google.html'
+
     def __init__(self, *args, **kwargs):
         self.ads = kwargs.get('ads', None)
         self.search = kwargs.get('search', False)
@@ -77,6 +79,7 @@ class GooglePolygonWidget(Input):
         self.lat = kwargs.get('lat', 48.856)
         self.lng = kwargs.get('lng', 2.333)
         super(GooglePolygonWidget, self).__init__()
+
     def get_context_data(self):
         ctx = super(GooglePolygonWidget, self).get_context_data()
         ctx['ads'] = self.ads
@@ -86,26 +89,30 @@ class GooglePolygonWidget(Input):
         ctx['lat'] = self.lat
         ctx['lng'] = self.lng
         return ctx
+
     class Media:
         js = (
             'http://maps.googleapis.com/maps/api/js?sensor=false&amp;libraries=drawing',
             'js/poly_googlemap.js',
         )
 
+
 class BooleanExtendedNumberInput(NumberInput):
     template_name = 'floppyforms/boolean_extended_number_input.html'
     # we should add jquery, but it's on all site pages so ...
 
+
 class BooleanExtendedInput(Input):
     template_name = 'floppyforms/boolean_extended_input.html'
 
+
 class SpecificRangeWidget(forms.MultiWidget):
-    """ 
+    """
     Specific Range Widget, a range widget with min and max inputs
     """
     def __init__(self, attrs=None):
-        widgets = (forms.TextInput(attrs={'placeholder':'min', 'class':'input-mini'}), 
-                   forms.TextInput(attrs={'placeholder':'max', 'class':'input-mini'}))
+        widgets = (forms.TextInput(attrs={'placeholder': 'min', 'class': 'input-mini'}),
+                   forms.TextInput(attrs={'placeholder': 'max', 'class': 'input-mini'}))
         super(SpecificRangeWidget, self).__init__(widgets, attrs)
 
     def decompress(self, value):
