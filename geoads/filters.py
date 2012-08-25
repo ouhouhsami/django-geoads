@@ -4,7 +4,7 @@
 from django.contrib.gis.geos import fromstr
 from django_filters.filters import Filter
 
-import floppyforms 
+import floppyforms
 
 
 class LocationFilter(Filter):
@@ -20,6 +20,7 @@ class LocationFilter(Filter):
         else:
             value = fromstr(value)
             return qs.filter(**{'%s__%s' % (self.name, lookup): value})
+
 
 class BooleanForNumberFilter(Filter):
     """Boolean for number filter
