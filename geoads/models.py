@@ -85,11 +85,11 @@ class Ad(models.Model):
         """return a resume description for slug"""
         return self.slug
 
-    class Meta:
-        abstract = True
-
     def __unicode__(self):
         return self.slug
+
+    class Meta:
+        abstract = True
 
 
 # South definition for custom fields
@@ -105,5 +105,5 @@ rules = [
          },
      ),
 ]
-add_introspection_rules(rules, ["^stdimage\.fields",]) 
+add_introspection_rules(rules, ["^stdimage\.fields", ])
 add_introspection_rules([], ['^jsonfield\.fields\.JSONField'])

@@ -1,0 +1,13 @@
+language: python
+python:
+  - "2.7"
+install: pip install -r requirements.txt  --use-mirrors
+script: 
+  - python setup.py
+  - cd tests
+  - python manage.py test customads geoads
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install gdal-bin libproj-dev postgis postgresql-9.1-postgis
+  - sudo bash ./create_template_postgis-1.5.sh
+  - createdb -T template_postgis geoads_db -U postgres
