@@ -9,13 +9,15 @@ from django.utils.safestring import mark_safe
 from floppyforms.widgets import Input, NumberInput
 import floppyforms
 
+from geoads.templatetags.ads_tag import create_thumbnail_image_file
+
 
 class ImageWidget(forms.FileInput):
     """
     Image widget
     Used for rendering ImageField in Ad form
     """
-    template = '%(input)s<br /><a href="%(image)s" target="_blank"><img src="%(image_thumbnail)s" /></a>'
+    template = u'%(input)s<div class="thumbnail" style="float:right;"><a  href="%(image)s" target="_blank"><img class="img-polaroid" src="%(image_thumbnail)s" /></a><p>Aperçu</p></div>'
 
     def __init__(self, attrs=None, template=None, width=200, height=200):
         if template is not None:
@@ -28,7 +30,7 @@ class ImageWidget(forms.FileInput):
         input_html = super(forms.FileInput, self).render(name, value, attrs)
         if hasattr(value, 'width') and hasattr(value, 'height'):
             output = self.template % {'input': input_html, 'image': value.url,
-                                      'image_thumbnail': value.thumbnail.url()}
+                                      'image_thumbnail': create_thumbnail_image_file(value, 250, 150)}
         else:
             output = input_html
         return mark_safe(output)

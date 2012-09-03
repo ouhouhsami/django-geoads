@@ -8,12 +8,16 @@ from django.contrib.gis.geos import Point
 from pygeocoder import Geocoder, GeocoderError
 from moderation.forms import BaseModeratedObjectForm
 
-from geoads.models import AdPicture, AdContact
+from geoads.models import AdPicture, AdContact, AdSearch
 from geoads.widgets import ImageWidget
 
 
 class AdPictureForm(ModelForm):
-    """Ad picture form"""
+    """
+    Ad picture form
+    Warning: just used for class based views in this app
+    Applications could/should make it more pretty
+    """
     image = forms.ImageField(widget=ImageWidget(), required=False)
 
     class Meta:
@@ -21,14 +25,29 @@ class AdPictureForm(ModelForm):
 
 
 class AdContactForm(ModelForm):
-    """Ad contact form"""
+    """
+    Ad contact form
+    """
     class Meta:
         model = AdContact
         exclude = ['user', 'content_type', 'object_pk']
 
 
+class AdSearchForm(ModelForm):
+    """
+    Ad search form
+    """
+    class Meta:
+        model = AdSearch
+        fields = ('search', )
+        widgets = {
+            'search': forms.HiddenInput
+        }
+
+
 class BaseAdForm(BaseModeratedObjectForm, ModelForm):
-    """Base ad form
+    """
+    Base ad form
     Use it with your own Ad instance
     """
     def clean(self):

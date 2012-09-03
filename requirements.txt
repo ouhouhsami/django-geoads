@@ -8,7 +8,6 @@ django-coverage==1.2.2
 django-floppyforms==0.4.7
 -e git://github.com/JordanReiter/django-jsonfield.git@38e517cf09765d48b5ca2928ada468c70f6cf46e#egg=django_jsonfield-dev
 django-moderation==0.3.2
-django-stdimage==0.2.2
 psycopg2==2.4
 pygeocoder==1.1.4
 wsgiref==0.1.2
