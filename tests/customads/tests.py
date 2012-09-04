@@ -24,12 +24,11 @@ class AdViewsTestCase(unittest.TestCase):
         auto_discover()
         # set up request factory
         self.factory = RequestFactory()
-        
 
     def test_get_adsearchview(self):
         # client just get the adsearchview
         request = self.factory.get('/')
-        response = views.AdSearchView.as_view(model=TestAd, 
+        response = views.AdSearchView.as_view(model=TestAd,
                                       filterset_class=TestAdFilterSet)(request)
         self.assertEqual(response.status_code, 200)
         # at first time client get search view, and doesn't search ads
