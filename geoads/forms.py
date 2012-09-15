@@ -1,14 +1,11 @@
 # coding=utf-8
-""" Ads forms """
-
 from django import forms
 from django.forms import ModelForm
 from django.contrib.gis.geos import Point
 
 from pygeocoder import Geocoder, GeocoderError
-from moderation.forms import BaseModeratedObjectForm
 
-from geoads.models import AdPicture, AdContact, AdSearch
+from geoads.models import AdPicture, AdContact, AdSearch, AdSearchResult
 from geoads.widgets import ImageWidget
 
 
@@ -45,11 +42,36 @@ class AdSearchForm(ModelForm):
         }
 
 
-class BaseAdForm(BaseModeratedObjectForm, ModelForm):
+class AdSearchResultContactForm(ModelForm):
+    """
+    Ad Search Result Contact Form
+    """
+    message = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 4}), required=False
+        )
+
+    class Meta:
+        model = AdSearchResult
+        fields = ('message', 'id')
+        exclude = ('ad_search', 'content_type',
+            'object_pk', 'create_date', 'contacted')
+
+
+class AdSearchUpdateForm(ModelForm):
+    """
+    Ad search form for update
+    """
+    class Meta:
+        model = AdSearch
+        fields = ('public', 'description')
+
+
+class BaseAdForm(ModelForm):
     """
     Base ad form
     Use it with your own Ad instance
     """
+
     def clean(self):
         if 'user_entered_address' in self.cleaned_data:
             self.cleaned_data['address'] = self.address

@@ -31,6 +31,20 @@ def has_value(field):
 
 register.simple_tag(has_value)
 
+
+def public(ad_search_results):
+    """
+    tricky: return only public ad search results (the one which have ad search public)
+    didn't achieve to do that in ad manager.
+    """
+    ad_search_results_public = []
+    for ad in ad_search_results:
+        if ad.ad_search.public == True:
+            ad_search_results_public.append(ad)
+    return ad_search_results_public
+
+register.filter('public', public)
+
 import os
 from PIL import Image
 from django import template

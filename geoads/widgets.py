@@ -1,5 +1,5 @@
 # coding=utf-8
-""" ads widgets """
+""" Ads widgets """
 
 from django import forms
 from django.utils.encoding import force_unicode
@@ -75,7 +75,7 @@ class GooglePolygonWidget(Input):
 
     def __init__(self, *args, **kwargs):
         self.ads = kwargs.get('ads', None)
-        self.search = kwargs.get('search', False)
+        #self.search = kwargs.get('search', False)
         self.strokeColor = kwargs.get('strokeColor', '#FF0000')
         self.fillColor = kwargs.get('fillColor', '#00FF00')
         self.lat = kwargs.get('lat', 48.856)
@@ -85,7 +85,7 @@ class GooglePolygonWidget(Input):
     def get_context_data(self):
         ctx = super(GooglePolygonWidget, self).get_context_data()
         ctx['ads'] = self.ads
-        ctx['search'] = self.search
+        #ctx['search'] = self.search
         ctx['fillColor'] = self.fillColor
         ctx['strokeColor'] = self.strokeColor
         ctx['lat'] = self.lat
