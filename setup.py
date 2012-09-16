@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from distutils.core import setup
-from setuptools import find_packages
+from setuptools import setup, find_packages
 
 with open('README.md') as f:
     readme = f.read()
@@ -21,4 +21,20 @@ setup(
     packages=find_packages(exclude=('tests', 'docs')),
     zip_safe=False,
     include_package_data=True,
+    install_requires=[
+        'Django==1.3',
+        'psycopg2==2.4.1',  # Python-PostgreSQL Database Adapter
+        # 2.4.1 version for this reasaon:
+        # http://obroll.com/solve-psycopg2-programmingerror-autocommit-in-django-1-3-1-postgresql-run-test/
+        'django-moderation'
+    ],
+    classifiers=['Development Status :: 2 - Pre-Alpha',
+    'Environment :: Web Environment',
+    'Framework :: Django',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: BSD License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Topic :: Utilities'],
+    test_suite='example_project.runtests.runtests',
 )

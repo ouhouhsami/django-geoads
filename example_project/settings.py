@@ -5,22 +5,25 @@ import sys
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
+
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 
 ADMINS = ('admin@geoads.com',)
 
 MANAGERS = ADMINS
 
+# 'django.contrib.gis.db.backends.postgis'
+
+#TEST_RUNNER = 'django.contrib.gis.tests.GeoDjangoTestSuiteRunner'
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'geoads_db',                      # Or path to database file if using sqlite3.
-        'USER': 'postgres',                      # Not used with sqlite3.
-        'PASSWORD': '',                  # Not used with sqlite3.
-        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'example_project_db',
+        'USER': 'geoads_user'
     }
 }
+
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -90,7 +93,7 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-ROOT_URLCONF = 'tests.urls'
+ROOT_URLCONF = 'example_project.urls'
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
@@ -113,10 +116,10 @@ INSTALLED_APPS = (
     'customads',
 )
 
+# specific test setting for coverage information
 
-# specifit test setting for coverage information
-TEST_RUNNER = 'django_coverage.coverage_runner.CoverageRunner'
-COVERAGE_REPORT_HTML_OUTPUT_DIR = os.path.join(SITE_ROOT, 'coverage_report')
+#TEST_RUNNER = 'django_coverage.coverage_runner.CoverageRunner'
+#COVERAGE_REPORT_HTML_OUTPUT_DIR = os.path.join(SITE_ROOT, 'coverage_report')
 
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
@@ -141,7 +144,7 @@ LOGGING = {
     }
 }
 
-SOUTH_TESTS_MIGRATE = False 
+SOUTH_TESTS_MIGRATE = False
 SKIP_SOUTH_TESTS = True
 
 # for testing purposes, profile page = home/search page

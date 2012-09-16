@@ -100,7 +100,7 @@ class AdSearchView(ListView):
     def home(self, request, *args, **kwargs):
         # request.method == 'GET' and request.GET only contains pages and sorting
         self._q = None
-        self.object_list = self._get_queryset()
+        self.object_list = self.get_queryset()
         context = self.get_context_data(object_list=self.object_list,
             initial_ads=True)
         return self.render_to_response(context)
@@ -108,7 +108,7 @@ class AdSearchView(ListView):
     def filter_ads(self, request, *args, **kwargs):
         # request.method == 'GET' and request.GET != {} # after removing pages and potential sorting
         self._q = self.request.GET
-        self.object_list = self._get_queryset()
+        self.object_list = self.get_queryset()
         data = {'user': self.request.user,
             'search': self.request.GET.copy().urlencode()}
         self.ad_search_form = AdSearchForm(data)
@@ -123,7 +123,7 @@ class AdSearchView(ListView):
         if self.ad_search.user != self.request.user:
                 raise Http404
         self._q = QueryDict(self.ad_search.search)
-        self.object_list = self._get_queryset()
+        self.object_list = self.get_queryset()
         context = self.get_context_data(object_list=self.object_list)
         self.get_msg()
         return self.render_to_response(context)
@@ -172,12 +172,12 @@ class AdSearchView(ListView):
                 % (profile_detail_url))
         # need to be sure that self.ad_search.search is well updated
         self._q = QueryDict(self.ad_search.search)
-        self.object_list = self._get_queryset()
+        self.object_list = self.get_queryset()
         context = self.get_context_data(object_list=self.object_list)
         self.get_msg()
         return self.render_to_response(context)
 
-    def _get_queryset(self):
+    def get_queryset(self):
         filter = self.model.filterset(self._q)
         return filter
 
@@ -303,6 +303,7 @@ class AdDetailView(DetailView):
 
     def get_queryset(self):
         # below should return moderated objects w/ django-moderation
+        # need latter expertise
         return self.model.objects.all()
 
 
@@ -326,15 +327,6 @@ class AdCreateView(LoginRequiredMixin, CreateView):
             self.object.save()
             picture_formset.instance = self.object
             picture_formset.save()
-            #TODO: why must we set this after having saved it a first time
-            self.object.moderated_object.changed_by = self.request.user
-            self.object.moderated_object.save()
-            message = render_to_string('geoads/emails/ad_create_email_message.txt')
-            subject = render_to_string('geoads/emails/ad_create_email_subject.txt',
-                                  {'site_name': Site.objects.get_current().name})
-            send_mail(subject, message, 'contact@achetersanscom.com',
-                      [self.object.user.email], fail_silently=True)
-            #return HttpResponseRedirect('complete/')
             return redirect('complete', permanent=True)
         #TODO: if formset not valid
 
@@ -378,14 +370,6 @@ class AdUpdateView(LoginRequiredMixin, UpdateView):
             self.object.save()
             picture_formset.instance = self.object
             picture_formset.save()
-            message = render_to_string(
-                              'geoads/emails/ad_update_email_message.txt', {})
-            subject = render_to_string(
-                              'geoads/emails/ad_update_email_subject.txt',
-                             {'site_name': Site.objects.get_current().name})
-            send_mail(subject, message, 'contact@achetersanscom.com',
-                          [self.object.user.email],
-                          fail_silently=True)
             return redirect('complete', permanent=True)
         #TODO: if formset not valid
 
@@ -394,7 +378,7 @@ class AdUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_object(self, queryset=None):
         """ Hook to ensure object is owned by request.user. """
-        obj = self.model.unmoderated_objects.get(id=self.kwargs['pk'])
+        obj = self.model.objects.get(id=self.kwargs['pk'])
         if not obj.user == self.request.user:
             raise Http404
         # TODO: ugly hack don't understand, if not line below, value is converted
@@ -438,9 +422,6 @@ class AdDeleteView(LoginRequiredMixin, DeleteView):
                                     ContentFile(serialized_obj))
         self.object.delete()
         return HttpResponseRedirect(self.get_success_url())
-
-    def get_queryset(self):
-        return self.model.unmoderated_objects.all()
 
     def get_object(self, queryset=None):
         """ Ensure object is owned by request.user. """
