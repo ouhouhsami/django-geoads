@@ -53,10 +53,8 @@ class AdSearchView(ListView):
     """
     Class based ad search view
 
-    Not really clean yet, get-post condition in the above get_queryset functions
-
     GET method for searching: filtering, ordering, and browsing by page results
-    POST method for saving
+    POST method for saving a search
 
     """
     model = Ad
@@ -64,12 +62,10 @@ class AdSearchView(ListView):
     template_name = 'geoads/search.html'
     context_object_name = 'filter'
     no_results_msg = None  # Message when there is no results
-    results_msg = None  # Message when nb_of_results > 0
-    nb_of_results = None  # Number of results for a search
-    #BUG: paginate_by = 14 doesn't work, I use django-paginator
-    state = None  # 5 states: None, search, create_search, update_search, read_search
+    results_msg = None  # Message when number of results > 0
     ad_search_form = None
     ad_search = None
+    #BUG: paginate_by = 14 doesn't work, I use django-paginator
 
     def dispatch(self, request, *args, **kwargs):
         # here, dispatch according to the request.method and url args/kwargs
@@ -84,8 +80,10 @@ class AdSearchView(ListView):
         if request.method == 'POST':
             if self.search_id:
                 logger.info('update_search')
+                return self.update_search(request, *args, **kwargs)
             else:
                 logger.info('create_search')
+                return self.create_search(request, *args, **kwargs)
         else:
             if self.search_id:
                 logger.info('read_search')
@@ -103,14 +101,31 @@ class AdSearchView(ListView):
         # request.method == 'GET' and request.GET only contains pages and sorting
         self._q = None
         self.object_list = self._get_queryset()
-        context = self.get_context_data(object_list=self.object_list)
+        context = self.get_context_data(object_list=self.object_list,
+            initial_ads=True)
         return self.render_to_response(context)
 
     def filter_ads(self, request, *args, **kwargs):
         # request.method == 'GET' and request.GET != {} # after removing pages and potential sorting
         self._q = self.request.GET
         self.object_list = self._get_queryset()
+        data = {'user': self.request.user,
+            'search': self.request.GET.copy().urlencode()}
+        self.ad_search_form = AdSearchForm(data)
+        context = self.get_context_data(object_list=self.object_list,
+            ad_search_form=True)
+        self.get_msg()
+        return self.render_to_response(context)
+
+    def read_search(self, request, *args, **kwargs):
+        # request.method == 'GET' and search_id is not None
+        self.ad_search = AdSearch.objects.get(id=self.search_id)
+        if self.ad_search.user != self.request.user:
+                raise Http404
+        self._q = QueryDict(self.ad_search.search)
+        self.object_list = self._get_queryset()
         context = self.get_context_data(object_list=self.object_list)
+        self.get_msg()
         return self.render_to_response(context)
 
     @method_decorator(login_required)
@@ -121,6 +136,7 @@ class AdSearchView(ListView):
         # return the results
         self.ad_search_form = AdSearchForm(request.POST)
         if self.ad_search_form.is_valid():
+            logger.info('ad search form valid')
             self.ad_search_form.user = request.user
             self.ad_search = self.ad_search_form.save(commit=False)
             self.ad_search.content_type = ContentType.objects.get_for_model(self.model)
@@ -134,7 +150,8 @@ class AdSearchView(ListView):
                 % (profile_detail_url))
                 # when creation, we need to save related ads to ad_search_results
             #self.update_ad_search_results()
-            return HttpResponseRedirect(reverse('search', kwargs={'search_id': self.search_id}))
+            return HttpResponseRedirect(reverse('search',
+                kwargs={'search_id': self.search_id}))
         # this would be better no ?
         #self._q = QueryDict(self.ad_search.search)
         #self.object_list = self._get_queryset()
@@ -157,156 +174,32 @@ class AdSearchView(ListView):
         self._q = QueryDict(self.ad_search.search)
         self.object_list = self._get_queryset()
         context = self.get_context_data(object_list=self.object_list)
-        return self.render_to_response(context)
-
-    def read_search(self, request, *args, **kwargs):
-        # request.method == 'GET' and search_id is not None
-        self.ad_search = AdSearch.objects.get(id=self.search_id)
-        if self.ad_search.user != self.request.user:
-                raise Http404
-        self._q = QueryDict(self.ad_search.search)
-        self.object_list = self._get_queryset()
-        context = self.get_context_data(object_list=self.object_list)
+        self.get_msg()
         return self.render_to_response(context)
 
     def _get_queryset(self):
         filter = self.model.filterset(self._q)
         return filter
 
-    '''
-    def get_queryset(self):
-        # this function should only do a get_queryset,
-        # no form save creation/update
-
-        # test if request is for a saved search
-        if self.state is None:  # no create_search or update_search (no POST)
-            if 'search_id' in self.kwargs:
-                self.state = 'read_search'
-                self.search_id = self.kwargs['search_id']
-                self.ad_search = AdSearch.objects.get(id=self.search_id)
-                if self.ad_search.user != self.request.user:
-                    raise Http404
-                q = QueryDict(self.ad_search.search)  # this should be modified if self.request.GET != {} no ?, to upd old search
-                filter = self.model.filterset(q or None)
-                self.ad_search_form = AdSearchForm(instance=self.ad_search)  # upd with current self.request.GET ?
-            elif self.request.GET != {}:  # TODO: need to remove sort or page params
-                self.state = 'search'
-                filter = self.model.filterset(self.request.GET)
-                datas = self.request.GET.copy()
-                data = {'user': self.request.user, 'search': datas.urlencode()}
-                self.ad_search_form = AdSearchForm(data)  # set auto_id=True ? I don't think so
-            else:
-                # default case: no query, no saved search
-                filter = self.model.filterset()
-
-        else:
-            # here we come from POST, we are in create_search or update_search state
-            # coming from POST: we have saved if needed, we have created or updated search
-            # we can get value from it
-            q = QueryDict(self.ad_search.search)
-            filter = self.model.filterset(q or None)
-            # here we save search AdSearchResult instances
-            #print 'save instance'
-            for ad in filter.qs:
-                #print ad
-                ad_search_result, created = AdSearchResult.objects.get_or_create(
-                    ad_search=self.ad_search,
-                    content_type=self.ad_search.content_type,
-                    object_pk=ad.id)
-                #print ad_search_result, created
-            if self.state == 'create_search':
-                # for self.state = 'create_search', redirect to url with search_id, so that update will be possible
-                # this is here to be sure that we have created the ad search results
-                #print "URL", HttpResponseRedirect(reverse('search', kwargs={'search_id': self.search_id}))
-                # this was bad
-                # explanation here:
-                # http://stackoverflow.com/questions/3024168/django-how-do-i-redirect-a-post-and-pass-on-the-post-data
-                #return HttpResponseRedirect(reverse('search', kwargs={'search_id': self.search_id}))
-                pass
-
-        if self.state is not None:
-            # this shouldn't belong to app, no ?
-            # Search result message
-            self.nb_of_results = len(filter.qs)  # len method is faster than count() in this case !
-            if self.nb_of_results == 0:
-                messages.add_message(self.request, messages.INFO, self.get_no_results_msg())
-            if self.nb_of_results >= 1:
-                messages.add_message(self.request, messages.INFO, self.get_results_msg())
-
-        return filter
-
-    @method_decorator(login_required)  # Check if user.is_authenticated just for post
-    def post(self, request, *args, **kwargs):
-        # POST, create or update search
-        # removing the method decorator
-        # we could save search for anonymous user ?
-
-        profile_detail_url = account_url(self.request)
-
-        if 'search_id' in self.kwargs:
-            self.state = 'update_search'
-            self.search_id = self.kwargs['search_id']
-            self.ad_search = AdSearch.objects.get(id=self.search_id)
-            self.ad_search_form = AdSearchForm(request.POST, instance=self.ad_search)
-            if self.ad_search_form.is_valid():
-                self.ad_search_form.save()
-                messages.add_message(self.request, messages.INFO,
-                _(u'Votre recherche a bien été mise à jour ' +
-                  u'dans <a href="%s">votre compte</a>.')
-                % (profile_detail_url))
-        else:
-            self.state = 'create_search'
-            self.ad_search_form = AdSearchForm(request.POST)
-            if self.ad_search_form.is_valid():
-                self.ad_search_form.user = request.user
-                self.ad_search = self.ad_search_form.save(commit=False)
-                self.ad_search.content_type = ContentType.objects.get_for_model(self.model)
-                self.ad_search.user = request.user
-                self.ad_search.public = True
-                self.ad_search.save()
-                self.search_id = self.ad_search.id
-                messages.add_message(self.request, messages.INFO,
-                _(u'Votre recherche a bien été sauvegardée ' +
-                  u'dans <a href="%s">votre compte</a>.')
-                % (profile_detail_url))
-                # when creation, we need to save related ads to ad_search_results
-                # self.update_ad_search_results()
-            return HttpResponseRedirect(reverse('search', kwargs={'search_id': self.search_id}))
-
-        return self.get(request, *args, **kwargs)   
-
-    def update_ad_search_results(self):
-        q = QueryDict(self.ad_search.search)
-        filter = self.model.filterset(q or None)
-        # here we save search AdSearchResult instances
-        for ad in filter.qs:
-            #print ad
-            ad_search_result, created = AdSearchResult.objects.get_or_create(
-                ad_search=self.ad_search,
-                content_type=self.ad_search.content_type,
-                object_pk=ad.id)
-    '''
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, initial_ads=None, ad_search_form=None, **kwargs):
         context = super(AdSearchView, self).get_context_data(**kwargs)
-        if self.request.method != 'POST' and self.request.GET == {} and self.search_id is None:
-            context['search'] = False
+        if initial_ads == True:
             context['initial_ads'] = self.model.objects.select_related()\
-                            .filter(delete_date__isnull=True)\
-                            .order_by('-create_date')[0:10]
-        else:
-            context['search'] = True
-        # if recall save search
-        # also, coming from POST we shoudn't propose save search
-        # so we set ad_search_form to None
-        if self.state == 'create_search' or self.state == 'update_search':
-            self.ad_search_form = None
-        if self.state == 'read_search' and len(self.request.GET) == 0:
-            self.ad_search_form = None
-        context['ad_search_form'] = self.ad_search_form
-        # this allow us to do {% url search search.id %} or {% ur search %} in template
-        # in order to update or create search etc.
-        context['search_id'] = self.search_id
+                .order_by('-create_date')[0:10]
+        if ad_search_form == True:
+            context['ad_search_form'] = self.ad_search_form  # need to be filled with current search
+        context['search_id'] = self.search_id  # what to do with that
         return context
+
+    def get_msg(self):
+        """
+        Search result default message
+
+        """
+        if len(self.object_list.qs) == 0:
+            messages.add_message(self.request, messages.INFO, self.get_no_results_msg())
+        else:
+            messages.add_message(self.request, messages.INFO, self.get_results_msg())
 
     def get_no_results_msg(self):
         """
@@ -327,8 +220,8 @@ class AdSearchView(ListView):
         if self.results_msg is None:
             msg = ungettext(u'%s annonce correspondant à votre recherche. ',
                     u'%s annonces correspondant à votre recherche. ',
-                    self.nb_of_results) \
-                            % (self.nb_of_results)
+                    len(self.object_list.qs)) \
+                            % (len(self.object_list.qs))
             return msg
         return self.results_msg
 
@@ -599,7 +492,7 @@ class AdPotentialBuyersView(LoginRequiredMixin, ListView):
 
 class AdPotentialBuyerContactView(LoginRequiredMixin, FormView):
     """
-    Potential buyer contact view for an ad
+    Potential buyer contact view for an Ad
 
     """
     form_class = AdSearchResultContactForm

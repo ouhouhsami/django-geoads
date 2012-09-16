@@ -8,20 +8,17 @@ from django.test.client import RequestFactory
 from django.contrib.auth.models import User
 from django.http import HttpRequest, Http404
 
-from moderation.helpers import auto_discover
+from geoads import views
 
 from customads.models import TestAd
 from customads.filtersets import TestAdFilterSet
 from customads.forms import TestAdForm
-from geoads import views
 
 
 class AdViewsTestCase(unittest.TestCase):
     # basic test for ad generic views
 
     def setUp(self):
-        # ad moderation manager to our moderated model
-        auto_discover()
         # set up request factory
         self.factory = RequestFactory()
 

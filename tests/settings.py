@@ -9,8 +9,6 @@ SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 
 ADMINS = ('admin@geoads.com',)
 
-MODERATORS = ('contact@site.com', )
-DJANGO_MODERATION_MODERATORS = MODERATORS
 MANAGERS = ADMINS
 
 DATABASES = {
@@ -113,7 +111,6 @@ INSTALLED_APPS = (
     'django.contrib.sitemaps',
     'geoads',
     'customads',
-    'moderation',
 )
 
 
