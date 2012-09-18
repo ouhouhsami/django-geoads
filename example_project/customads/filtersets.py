@@ -4,6 +4,7 @@ from customads.forms import TestAdFilterSetForm
 
 
 class TestAdFilterSet(AdFilterSet):
+
     class Meta:
         model = TestAd
         form = TestAdFilterSetForm

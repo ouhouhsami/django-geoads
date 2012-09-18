@@ -5,13 +5,16 @@ GeoAd test module
 
 from django.utils import unittest
 from django.test.client import RequestFactory
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AnonymousUser
 from django.http import Http404
 
 from geoads import views
+from geoads.filtersets import AdFilterSet
 
 from customads.models import TestAd
-from customads.forms import TestAdForm
+from customads.forms import TestAdForm, TestAdFilterSetForm
+
+from django.forms import ModelForm
 
 
 class AdViewsTestCase(unittest.TestCase):
@@ -21,45 +24,49 @@ class AdViewsTestCase(unittest.TestCase):
         # set up request factory
         self.factory = RequestFactory()
 
-    def test_get_adsearchview(self):
+    def test_home_adsearchview(self):
         # client just get the adsearchview
         request = self.factory.get('/')
         response = views.AdSearchView.as_view(model=TestAd)(request)
         self.assertEqual(response.status_code, 200)
-        # at first time client get search view, and doesn't search ads
-        self.assertTrue(not(response.context_data['search']))
         # check that we set initial_ads
         self.assertTrue('initial_ads' in response.context_data)
         # check that ad_search_form is None
         # so that user can't save initial search
-        self.assertEqual(response.context_data['ad_search_form'], None)
-        # check that filter form is available
-        print response.context_data['filter'].form.__class__
-        print type(response.context_data['filter'].form)
+        self.assertTrue('ad_search_form' not in response.context_data)
+        # check that filter is instance of AdFilterSet
+        self.assertTrue(isinstance(response.context_data['filter'], AdFilterSet))
 
+    def test_filter_ads(self):
+        # client try to filter search
+        request = self.factory.get('/?brand=foo')
+        request.user = AnonymousUser()
+        response = views.AdSearchView.as_view(model=TestAd)(request)
+        # check that we don't return initial ads
+        self.assertTrue('initial_ads' not in response.context_data)
+        # check that the user have a form to save it search
+        self.assertTrue('ad_search_form' in response.context_data)
+
+    '''
     def test_post_adsearchview(self):
         request = self.factory.post('/')
-        # pb if not logged; pb of message for anonymous user
-        # even if message for anonymous user are set !
         request.user = User.objects.get(username="paul")
         response = views.AdSearchView.as_view(model=TestAd)(request)
         ads = TestAd.objects.all()
         self.assertTrue(response.context_data['search'])
+    '''
 
     def test_adcreateview(self):
-        # init
+        # client want to add an ad
         request = self.factory.get('/ad/create')
-        user = User.objects.create_user('paul', 'maccartney@thebeatles.com',
-                                                                'paulpassword')
+        user = User.objects.create_user('paul',
+            'maccartney@thebeatles.com', 'paulpassword')
         request.user = user
         response = views.AdCreateView.as_view(model=TestAd)(request)
-
         # can reach ad create view
         self.assertEqual(response.status_code, 200)
-
         # be sure that picture formset is available
         self.assertTrue('picture_formset' in response.context_data)
-
         # post without filling form/data
         request = self.factory.post('/ad/create')
         request.user = user
@@ -67,9 +74,8 @@ class AdViewsTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         # form is invalid
         self.assertEqual(response.context_data['form'].is_valid(), False)
-
         # post with a good datas
-        form_data = {'slug': 'my_awesome_ad',
+        form_data = {'brand': 'my_guitar',
                      'user_entered_address': '5 rue de Vernueil, Paris',
                      'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
                      'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
@@ -89,6 +95,7 @@ class AdViewsTestCase(unittest.TestCase):
         # return to form edition view to correct address
         self.assertEqual(response.status_code, 200)
 
+    '''
     def test_adreadview(self):
         user = User.objects.create_user('john', 'lennon@thebeatles.com',
                                                                 'johnpassword')
@@ -168,3 +175,4 @@ class AdViewsTestCase(unittest.TestCase):
         request = self.factory.post('/ad/delete/1')
         request.user = User.objects.get(username='mike')
         response = views.AdDeleteView.as_view(model=TestAd)(request, pk=2)
+    '''

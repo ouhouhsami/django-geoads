@@ -7,6 +7,8 @@ from geoads.views import (AdSearchView, AdDetailView, AdSearchDeleteView,
     AdCreateView,  AdUpdateView, CompleteView, AdDeleteView)
 from example_project.customads.models import TestAd
 from example_project.customads.forms import TestAdForm
+# this import below, unused, is to instantiate the filter with metaclass and set the model filterset var
+from example_project.customads.filtersets import TestAdFilterSet
 
 
 urlpatterns = patterns('',

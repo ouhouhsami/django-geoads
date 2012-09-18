@@ -21,7 +21,6 @@ from django.core.urlresolvers import reverse
 from django.http import QueryDict, Http404, HttpResponseRedirect
 from django.shortcuts import render_to_response, redirect
 from django.template import RequestContext
-from django.template.loader import render_to_string
 from django.utils.translation import ugettext as _
 from django.utils.translation import ungettext
 from django.utils.decorators import method_decorator
@@ -147,7 +146,7 @@ class AdSearchView(ListView):
             messages.add_message(self.request, messages.INFO,
                 _(u'Votre recherche a bien été sauvegardée ' +
                 u'dans <a href="%s">votre compte</a>.')
-                % (profile_detail_url))
+                % (profile_detail_url), fail_silently=True)
                 # when creation, we need to save related ads to ad_search_results
             #self.update_ad_search_results()
             return HttpResponseRedirect(reverse('search',
@@ -197,9 +196,11 @@ class AdSearchView(ListView):
 
         """
         if len(self.object_list.qs) == 0:
-            messages.add_message(self.request, messages.INFO, self.get_no_results_msg())
+            messages.add_message(self.request, messages.INFO,
+                self.get_no_results_msg(), fail_silently=True)
         else:
-            messages.add_message(self.request, messages.INFO, self.get_results_msg())
+            messages.add_message(self.request, messages.INFO,
+                self.get_results_msg(), fail_silently=True)
 
     def get_no_results_msg(self):
         """
@@ -259,7 +260,7 @@ class AdSearchDeleteView(LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         """ Redirect to user account page"""
         messages.add_message(self.request, messages.INFO,
-                             _(u'Votre recherche a bien été supprimée.'))
+            _(u'Votre recherche a bien été supprimée.'), fail_silently=True)
         return account_url(self.request)
 
 
@@ -295,7 +296,7 @@ class AdDetailView(DetailView):
                fail_silently=False)
             sent_mail = True
             messages.add_message(request, messages.INFO,
-                                 _(u'Votre message a bien été envoyé.'))
+                _(u'Votre message a bien été envoyé.'), fail_silently=True)
         return render_to_response(self.template_name, {'ad': self.get_object(),
                                   'contact_form': contact_form,
                                   'sent_mail': sent_mail},
@@ -433,7 +434,7 @@ class AdDeleteView(LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         """ Redirect to user account page"""
         messages.add_message(self.request, messages.INFO,
-                             _(u'Votre annonce a bien été supprimée.'))
+            _(u'Votre annonce a bien été supprimée.'), fail_silently=True)
         return account_url(self.request)
 
 
