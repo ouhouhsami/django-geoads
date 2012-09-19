@@ -12,9 +12,8 @@ ADMINS = ('admin@geoads.com',)
 
 MANAGERS = ADMINS
 
-# 'django.contrib.gis.db.backends.postgis'
-
-#TEST_RUNNER = 'django.contrib.gis.tests.GeoDjangoTestSuiteRunner'
+TEST_RUNNER = 'django_coverage.coverage_runner.CoverageRunner'
+COVERAGE_REPORT_HTML_OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'coverage_report')
 
 DATABASES = {
     'default': {
@@ -38,7 +37,7 @@ TIME_ZONE = 'Europe/Paris'
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'fr-FR'
 
-SITE_ID=1
+SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.

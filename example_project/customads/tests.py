@@ -47,14 +47,12 @@ class AdViewsTestCase(unittest.TestCase):
         # check that the user have a form to save it search
         self.assertTrue('ad_search_form' in response.context_data)
 
-    '''
     def test_post_adsearchview(self):
         request = self.factory.post('/')
         request.user = User.objects.get(username="paul")
         response = views.AdSearchView.as_view(model=TestAd)(request)
         ads = TestAd.objects.all()
         self.assertTrue(response.context_data['search'])
-    '''
 
     def test_adcreateview(self):
         # client want to add an ad

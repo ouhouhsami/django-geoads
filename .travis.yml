@@ -4,8 +4,8 @@ python:
 install: pip install -r requirements.txt  --use-mirrors
 script: 
   - python setup.py
-  - cd tests
-  - python manage.py test customads geoads
+  - cd example_project
+  - python runtests.py
 before_install:
   - sudo apt-get update
   - sudo apt-get install gdal-bin libproj-dev postgis postgresql-9.1-postgis
