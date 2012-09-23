@@ -21,8 +21,6 @@ class UserFactory(factory.Factory):
 
     username = factory.Sequence(lambda n: "user %s" % n)
     email = factory.LazyAttribute(lambda o: '%s@example.org' % o.username)
-    #password = factory.Sequence(lambda n: "password%s" % n)
-
     
     @classmethod
     def _prepare(cls, create, password=None, **kwargs):
@@ -54,9 +52,12 @@ class TestAdFactory(factory.Factory):
     @classmethod
     def _prepare(cls, create, **kwargs):
         user_entered_address = kwargs['user_entered_address']
-        geocode = Geocoder.geocode(user_entered_address.encode('ascii', 'ignore'))
-        coordinates = geocode[0].coordinates
-        location = str(Point(coordinates[1], coordinates[0], srid=900913))
-        print location
+        try:
+            geocode = Geocoder.geocode(user_entered_address.encode('ascii', 'ignore'))
+            coordinates = geocode[0].coordinates
+            location = str(Point(coordinates[1], coordinates[0], srid=900913))
+        except:
+            location = 'POINT (2.3316097000000000 48.8002050999999994)'
+        #kwargs.pop('location', None)
         test_ad = super(TestAdFactory, cls)._prepare(create, location=location, **kwargs)
         return test_ad

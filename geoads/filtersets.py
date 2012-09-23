@@ -3,6 +3,7 @@ import django_filters
 from django_filters.filterset import FilterSetMetaclass, FilterSetOptions
 
 from geoads.models import Ad
+from example_project.customads.models import TestAd
 
 
 class GeoAdsFilterSetMetaclass(FilterSetMetaclass):
@@ -23,7 +24,6 @@ class AdFilterSet(django_filters.FilterSet):
     __metaclass__ = GeoAdsFilterSetMetaclass
 
     def __len__(self):
-        print self.qs.count()
         return len(self.qs)
 
     def __getitem__(self, key):

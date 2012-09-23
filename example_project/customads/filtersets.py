@@ -1,4 +1,4 @@
-from geoads.filtersets import AdFilterSet
+from geoads.filtersets import AdFilterSet, GeoAdsFilterSetMetaclass
 from customads.models import TestAd
 from customads.forms import TestAdFilterSetForm
 

@@ -111,9 +111,9 @@ INSTALLED_APPS = (
     'django.contrib.gis',
     'django.contrib.flatpages',
     'django.contrib.sitemaps',
+    'django_filters',
     'geoads',
     'customads',
-    'django_filters'
 )
 
 # specific test setting for coverage information

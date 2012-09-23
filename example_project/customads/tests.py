@@ -8,15 +8,19 @@ from django.utils import unittest
 from django.test.client import RequestFactory
 from django.contrib.auth.models import User, AnonymousUser
 from django.http import Http404
+from django.forms import ModelForm
 
 from geoads import views
 from geoads.filtersets import AdFilterSet
+from geoads.models import AdSearch
 
 from customads.models import TestAd
 from customads.forms import TestAdForm, TestAdFilterSetForm
 from customads.factories import UserFactory, TestAdFactory
-
-from django.forms import ModelForm
+# UGLY UGLY UGLY fucking hack, I need to import this
+# to be sure that my hook to set filterset on model instance
+# will be available
+from customads.filtersets import TestAdFilterSet
 
 
 class AdDeleteViewTestCase(unittest.TestCase):
@@ -93,6 +97,125 @@ class AdUpdateViewTestCase(unittest.TestCase):
         view = views.AdUpdateView.as_view(model=TestAd, form_class=TestAdForm)
         self.assertRaises(Http404, view, request, pk=test_ad.pk)
         #self.assertEqual(response.status_code, 301)
+
+
+class AdSearchAndMoreViewTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_home_adsearchview(self):
+        # client just get the adsearchview
+        TestAdFactory.create_batch(12)
+        request = self.factory.get('/')
+        response = views.AdSearchView.as_view(model=TestAd)(request)
+        self.assertEqual(response.status_code, 200)
+        # check that we set initial_ads
+        self.assertTrue('initial_ads' in response.context_data)
+        # check that ad_search_form is None
+        # so that user can't save initial search
+        self.assertTrue('ad_search_form' not in response.context_data)
+        # check that filter is instance of AdFilterSet
+        self.assertTrue(isinstance(response.context_data['filter'], AdFilterSet))
+
+    def test_filterads(self):
+        test_ads = TestAdFactory.create_batch(12)
+        # client try to filter search
+        # and get at lead one result
+        request = self.factory.get('/', data={'brand': test_ads[0].brand})
+        user = UserFactory.create()
+        request.user = user
+        response = views.AdSearchView.as_view(model=TestAd)(request)
+        # check that we don't return initial ads
+        self.assertTrue('initial_ads' not in response.context_data)
+        # check that the user have a form to save it search
+        self.assertTrue('ad_search_form' in response.context_data)
+        # or get 0 results
+        request = self.factory.get('/', data={'brand': 'nologo'})
+        request.user = user
+        response = views.AdSearchView.as_view(model=TestAd)(request)
+
+    def test_create_update_read__delete_search(self):
+        test_ad = TestAdFactory.create()
+        # here we build a search ad form
+        # create
+        request = self.factory.post('/', data={'search': 'brand=' + test_ad.brand})
+        user = UserFactory.create()
+        request.user = user
+        response = views.AdSearchView.as_view(model=TestAd)(request)
+        ad_search = AdSearch.objects.all().filter(user=user)[0]
+        # update
+        request = self.factory.post('/', data={'search': 'brand=' + test_ad.brand})
+        request.user = user
+        response = views.AdSearchView.as_view(model=TestAd)(request, search_id=ad_search.pk)
+        # read
+        request = self.factory.get('/')
+        request.user = user
+        response = views.AdSearchView.as_view(model=TestAd)(request, search_id=ad_search.pk)
+        not_ad_search_owner_user = UserFactory.create()
+        request = self.factory.get('/')
+        request.user = not_ad_search_owner_user
+        view = views.AdSearchView.as_view(model=TestAd)
+        self.assertRaises(Http404, view, request, search_id=ad_search.pk)
+        # delete
+        request = self.factory.get('/')
+        # by non authorized user
+        request.user = not_ad_search_owner_user
+        view = views.AdSearchDeleteView.as_view()
+        self.assertRaises(Http404, view, request, pk=ad_search.pk)
+        # by authorized user (owner of ad search)
+        request = self.factory.post('/')
+        request.user = ad_search.user
+        response = views.AdSearchDeleteView.as_view()(request, pk=ad_search.pk)
+
+
+class AdDetailViewTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_read(self):
+        test_ad = TestAdFactory.create()
+        request = self.factory.get('/')
+        response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
+
+    def test_send_message(self):
+        test_ad = TestAdFactory.create()
+        user = UserFactory.create()
+        request = self.factory.post('/', data={'message':'Hi buddy !'})
+        request.user = user
+        response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
+
+
+class AdCreateViewTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_create(self):
+        # get form
+        request = self.factory.get('/')
+        user = UserFactory.create()
+        request.user = user
+        response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
+        # valid
+        form_data = {'brand': 'my_guitar',
+            'user_entered_address': '5 rue de Vernueil, Paris',
+            'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
+            'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
+        request = self.factory.post('/', data=form_data, files=[])
+        user = UserFactory.create()
+        request.user = user
+        response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
+        # invalid
+        form_data = {'brand': 'my_guitar',
+            'user_entered_address': '',
+            'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
+            'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
+        request = self.factory.post('/', data=form_data, files=[])
+        user = UserFactory.create()
+        request.user = user
+        response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
 
 '''
 

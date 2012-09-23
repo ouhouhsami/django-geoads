@@ -96,7 +96,7 @@ class AdSearchView(ListView):
                 logger.info('home')
                 return self.home(request, *args, **kwargs)
 
-        return super(AdSearchView, self).dispatch(request, *args, **kwargs)
+        #return super(AdSearchView, self).dispatch(request, *args, **kwargs)
 
     def home(self, request, *args, **kwargs):
         # request.method == 'GET' and request.GET only contains pages and sorting
@@ -170,7 +170,7 @@ class AdSearchView(ListView):
             messages.add_message(self.request, messages.INFO,
                 _(u'Votre recherche a bien été mise à jour ' +
                   u'dans <a href="%s">votre compte</a>.')
-                % (profile_detail_url))
+                % (profile_detail_url), fail_silently=True)
         # need to be sure that self.ad_search.search is well updated
         self._q = QueryDict(self.ad_search.search)
         self.object_list = self.get_queryset()
@@ -281,6 +281,7 @@ class AdDetailView(DetailView):
         context['sent_mail'] = False
         return context
 
+    @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
         """ used for contact message between users """
         contact_form = AdContactForm(request.POST)
