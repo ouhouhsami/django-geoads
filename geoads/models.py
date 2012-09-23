@@ -102,7 +102,7 @@ class Ad(models.Model):
     update_date = models.DateTimeField(auto_now=True)
     create_date = models.DateTimeField(auto_now_add=True)
     delete_date = models.DateTimeField(null=True, blank=True)
-    visible = models.BooleanField()
+    visible = models.BooleanField()  # this shoud go to children class w/ moderation feature
 
     ad_search_results = generic.GenericRelation(AdSearchResult,
         object_id_field="object_pk", content_type_field="content_type")

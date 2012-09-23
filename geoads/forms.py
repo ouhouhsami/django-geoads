@@ -5,7 +5,7 @@ from django.contrib.gis.geos import Point
 
 from pygeocoder import Geocoder, GeocoderError
 
-from geoads.models import AdPicture, AdContact, AdSearch, AdSearchResult
+from geoads.models import AdPicture, AdContact, AdSearch, AdSearchResult, Ad
 from geoads.widgets import ImageWidget
 
 
@@ -72,13 +72,13 @@ class BaseAdForm(ModelForm):
     Use it with your own Ad instance
     """
 
-    def clean(self):
-        if 'user_entered_address' in self.cleaned_data:
-            self.cleaned_data['address'] = self.address
-            self.cleaned_data['location'] = self.location
-        return self.cleaned_data
-
     def clean_user_entered_address(self):
+        # here we try to figure if user entered address
+        # is an existing address
+        # ! of course, this will be needed an other time
+        # to set address and location fields in ad model
+        # don't know how to improve this for the moment
+        # and just have it computed one time
         data = self.cleaned_data['user_entered_address']
         try:
             geocode = Geocoder.geocode(data.encode('ascii', 'ignore'))
@@ -91,4 +91,5 @@ class BaseAdForm(ModelForm):
         return data
 
     class Meta:
+        model = Ad
         exclude = ('user', 'delete_date', 'location', 'address')

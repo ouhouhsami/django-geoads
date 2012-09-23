@@ -6,6 +6,7 @@ This module provides CRUD absraction functions.
 """
 import logging
 from datetime import datetime
+from pygeocoder import Geocoder
 
 from django.conf import settings
 from django.contrib import messages
@@ -13,6 +14,7 @@ from django.contrib.contenttypes.generic import generic_inlineformset_factory
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
+from django.contrib.gis.geos import Point
 from django.core.mail import send_mail
 from django.core import serializers
 from django.core.files.storage import default_storage
@@ -29,7 +31,7 @@ from django.views.generic import (ListView, DetailView, CreateView, UpdateView,
 
 from geoads.models import Ad, AdSearch, AdPicture, AdSearchResult
 from geoads.forms import (AdContactForm, AdPictureForm, AdSearchForm,
-    AdSearchUpdateForm, AdSearchResultContactForm)
+    AdSearchUpdateForm, AdSearchResultContactForm, BaseAdForm)
 
 logger = logging.getLogger(__name__)
 
@@ -323,8 +325,12 @@ class AdCreateView(LoginRequiredMixin, CreateView):
         if picture_formset.is_valid():
             self.object = form.save(commit=False)
             self.object.user = self.request.user
-            self.object.location = form.cleaned_data['location']
-            self.object.address = form.cleaned_data['address']
+            user_entered_address = form.cleaned_data['user_entered_address']
+            geocode = Geocoder.geocode(user_entered_address.encode('ascii', 'ignore'))
+            self.object.address = geocode.raw
+            coordinates = geocode[0].coordinates
+            pnt = Point(coordinates[1], coordinates[0], srid=900913)
+            self.object.location = pnt
             self.object.save()
             picture_formset.instance = self.object
             picture_formset.save()
@@ -360,22 +366,29 @@ class AdUpdateView(LoginRequiredMixin, UpdateView):
     model = Ad  # overriden in specific project urls
     template_name = 'geoads/edit.html'
     ad_picture_form = AdPictureForm
+    form_class = BaseAdForm
 
     def form_valid(self, form):
         context = self.get_context_data()
         picture_formset = context['picture_formset']
         if picture_formset.is_valid():
             self.object = form.save(commit=False)
-            self.object.location = form.cleaned_data['location']
-            self.object.address = form.cleaned_data['address']
+            user_entered_address = form.cleaned_data['user_entered_address']
+            geocode = Geocoder.geocode(user_entered_address.encode('ascii', 'ignore'))
+            self.object.address = geocode.raw
+            coordinates = geocode[0].coordinates
+            pnt = Point(coordinates[1], coordinates[0], srid=900913)
+            self.object.location = pnt
             self.object.save()
             picture_formset.instance = self.object
             picture_formset.save()
             return redirect('complete', permanent=True)
         #TODO: if formset not valid
 
-    def form_invalid(self, form):
-        return self.render_to_response(self.get_context_data(form=form))
+    #unused
+    #def form_invalid(self, form):
+    #    print 'KLKLKLKLK'
+    #    return self.render_to_response(self.get_context_data(form=form))
 
     def get_object(self, queryset=None):
         """ Hook to ensure object is owned by request.user. """
