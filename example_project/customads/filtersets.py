@@ -8,4 +8,4 @@ class TestAdFilterSet(AdFilterSet):
     class Meta:
         model = TestAd
         form = TestAdFilterSetForm
-        fields = ['brand', ]
+        fields = ['brand', 'location',]

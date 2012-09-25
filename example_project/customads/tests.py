@@ -13,10 +13,12 @@ from django.forms import ModelForm
 from geoads import views
 from geoads.filtersets import AdFilterSet
 from geoads.models import AdSearch
+from geoads.forms import BaseAdForm
+from geoads.filters import BooleanForNumberFilter
 
-from customads.models import TestAd
+from customads.models import TestAd, TestBooleanAd
 from customads.forms import TestAdForm, TestAdFilterSetForm
-from customads.factories import UserFactory, TestAdFactory
+from customads.factories import UserFactory, TestAdFactory, TestBooleanAdFactory
 # UGLY UGLY UGLY fucking hack, I need to import this
 # to be sure that my hook to set filterset on model instance
 # will be available
@@ -135,11 +137,13 @@ class AdSearchAndMoreViewTestCase(unittest.TestCase):
         request.user = user
         response = views.AdSearchView.as_view(model=TestAd)(request)
 
+
     def test_create_update_read__delete_search(self):
         test_ad = TestAdFactory.create()
         # here we build a search ad form
         # create
-        request = self.factory.post('/', data={'search': 'brand=' + test_ad.brand})
+        location = "SRID%3D900913%3BPOLYGON((2.3886182861327825+48.834761790252024%2C2.2773817138671575+48.837925498723266%2C2.3251035766601262+48.87180983721773%2C2.4023511962890325+48.87293892019383%2C2.3886182861327825+48.834761790252024))"
+        request = self.factory.post('/', data={'search': 'brand=' + test_ad.brand + '&location=' + location})
         user = UserFactory.create()
         request.user = user
         response = views.AdSearchView.as_view(model=TestAd)(request)
@@ -209,13 +213,24 @@ class AdCreateViewTestCase(unittest.TestCase):
         response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
         # invalid
         form_data = {'brand': 'my_guitar',
-            'user_entered_address': '',
+            'user_entered_address': 'fkjfkjfkjfkjf',
             'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
             'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
         request = self.factory.post('/', data=form_data, files=[])
         user = UserFactory.create()
         request.user = user
         response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
+        self.assertEqual(response.context_data['form'].errors['user_entered_address'], [u'Indiquer une adresse valide.'])
+
+
+class UtilsFiltersTestCase(unittest.TestCase):
+
+    def test_booleanfornumberfilter(self):
+        tbads = TestBooleanAdFactory.create_batch(20)
+        bfnf = BooleanForNumberFilter(name='boolean')
+        qs = TestBooleanAd.objects.all()
+        self.assertEqual(qs, bfnf.filter(qs, None))
+        self.assertEqual(bfnf.filter(qs, True).count(), TestBooleanAd.objects.filter(boolean=True).count())
 
 '''
 

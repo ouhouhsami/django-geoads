@@ -87,7 +87,7 @@ class BaseAdForm(ModelForm):
             pnt = Point(coordinates[1], coordinates[0], srid=900913)
             self.location = pnt
         except GeocoderError:
-            raise forms.ValidationError(u"Indiquer une adresse valide")
+            raise forms.ValidationError(u"Indiquer une adresse valide.")
         return data
 
     class Meta:

@@ -7,3 +7,7 @@ class TestAd(Ad):
 
     #class Meta:
     #    app_label = 'ads'
+
+
+class TestBooleanAd(Ad):
+    boolean = models.BooleanField()

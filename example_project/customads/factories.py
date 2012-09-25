@@ -7,7 +7,10 @@ from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
 from django.contrib.auth.hashers import make_password
 
-from models import TestAd
+from geoads.models import Ad
+
+from models import TestAd, TestBooleanAd
+
 
 
 ADDRESSES = ["13 Place d'Aligre, Paris",
@@ -42,10 +45,10 @@ class UserFactory(factory.Factory):
         return user
     '''
 
-class TestAdFactory(factory.Factory):
-    FACTORY_FOR = TestAd
 
-    brand = factory.Sequence(lambda n: 'brand%s' % n)
+class BaseAdFactory(factory.Factory):
+    FACTORY_FOR = Ad
+
     user_entered_address = random.choice(ADDRESSES)
     user = factory.SubFactory(UserFactory)
 
@@ -58,6 +61,17 @@ class TestAdFactory(factory.Factory):
             location = str(Point(coordinates[1], coordinates[0], srid=900913))
         except:
             location = 'POINT (2.3316097000000000 48.8002050999999994)'
-        #kwargs.pop('location', None)
-        test_ad = super(TestAdFactory, cls)._prepare(create, location=location, **kwargs)
+        test_ad = super(BaseAdFactory, cls)._prepare(create, location=location, **kwargs)
         return test_ad
+
+
+class TestAdFactory(BaseAdFactory):
+    FACTORY_FOR = TestAd
+
+    brand = factory.Sequence(lambda n: 'brand%s' % n)
+
+
+class TestBooleanAdFactory(BaseAdFactory):
+    FACTORY_FOR = TestBooleanAd
+
+    boolean = random.choice([True, False])

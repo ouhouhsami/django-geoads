@@ -1,8 +1,12 @@
 # coding=utf-8
+from django.db import models
+from django.contrib.gis.db import models
+
 import django_filters
 from django_filters.filterset import FilterSetMetaclass, FilterSetOptions
 
 from geoads.models import Ad
+from geoads.filters import LocationFilter
 from example_project.customads.models import TestAd
 
 
@@ -22,6 +26,13 @@ class GeoAdsFilterSetMetaclass(FilterSetMetaclass):
 
 class AdFilterSet(django_filters.FilterSet):
     __metaclass__ = GeoAdsFilterSetMetaclass
+
+    # this set use of LocationFilter for PointField
+    filter_overrides = {
+        models.PointField: {
+            'filter_class': LocationFilter
+        }
+    }
 
     def __len__(self):
         return len(self.qs)
