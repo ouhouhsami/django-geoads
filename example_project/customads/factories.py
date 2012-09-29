@@ -1,16 +1,14 @@
-
 import random
 import factory
 from pygeocoder import Geocoder
 
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
-from django.contrib.auth.hashers import make_password
 
-from geoads.models import Ad
+from geoads.models import Ad, AdSearch
 
 from models import TestAd, TestBooleanAd
-
 
 
 ADDRESSES = ["13 Place d'Aligre, Paris",
@@ -24,7 +22,7 @@ class UserFactory(factory.Factory):
 
     username = factory.Sequence(lambda n: "user %s" % n)
     email = factory.LazyAttribute(lambda o: '%s@example.org' % o.username)
-    
+
     @classmethod
     def _prepare(cls, create, password=None, **kwargs):
         return super(UserFactory, cls)._prepare(
@@ -32,18 +30,6 @@ class UserFactory(factory.Factory):
             password=make_password(password),
             **kwargs
         )
-
-    '''
-    @classmethod
-    def _prepare(cls, create, **kwargs):
-        password = kwargs.pop('password', None)
-        user = super(UserFactory, cls)._prepare(create, **kwargs)
-        if password:
-            user.set_password(password)
-            if create:
-                user.save()
-        return user
-    '''
 
 
 class BaseAdFactory(factory.Factory):
@@ -75,3 +61,10 @@ class TestBooleanAdFactory(BaseAdFactory):
     FACTORY_FOR = TestBooleanAd
 
     boolean = random.choice([True, False])
+
+
+class TestAdSearchFactory(factory.Factory):
+    FACTORY_FOR = AdSearch
+
+    user = factory.SubFactory(UserFactory)
+    #content_type = ContentType.objects.get_for_model(TestAd) it seems that testad not created ! TODO: resolve this for testing purpose

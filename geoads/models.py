@@ -6,12 +6,11 @@ from django.contrib.gis.db import models
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from django.http import QueryDict
+from django.contrib.contenttypes.models import ContentType
 
 from autoslug import AutoSlugField
 from jsonfield.fields import JSONField
+
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +82,8 @@ class AdSearchResult(models.Model):
 
     class Meta:
         db_table = 'ads_adsearchresult'
+        # ensure that an ad is only present once for 
+        unique_together = ('ad_search', 'content_type', 'object_pk')
 
 
 class Ad(models.Model):
@@ -119,20 +120,3 @@ class Ad(models.Model):
 
     class Meta:
         abstract = True
-
-
-@receiver(post_save, sender=AdSearch)
-def ad_search_post_save_handler(sender, instance, created, **kwargs):
-    logger.info('Ad search instance %s was saved' % (instance))
-    if created:
-        logger.info('It\'s a new instance')
-    else:
-        logger.info('not a new instance')
-    q = QueryDict(instance.search)
-    filter = instance.content_type.model_class().filterset(q or None)
-    # here we save search AdSearchResult instances
-    for ad in filter.qs:
-        ad_search_result, created = AdSearchResult.objects.get_or_create(
-            ad_search=instance,
-            content_type=instance.content_type,
-            object_pk=ad.id)

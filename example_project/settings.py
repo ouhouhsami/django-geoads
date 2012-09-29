@@ -13,6 +13,13 @@ ADMINS = ('admin@geoads.com',)
 MANAGERS = ADMINS
 
 TEST_RUNNER = 'django_coverage.coverage_runner.CoverageRunner'
+
+# I exclude admin.py files from my coverage
+# these files does'nt set anything spectial
+COVERAGE_MODULE_EXCLUDES = ['tests$', 'settings$', 'urls$', 'locale$',
+                                    'common.views.test', '__init__', 'django',
+                                    'migrations', 'admin']
+
 COVERAGE_REPORT_HTML_OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'coverage_report')
 
 DATABASES = {
@@ -112,8 +119,9 @@ INSTALLED_APPS = (
     'django.contrib.flatpages',
     'django.contrib.sitemaps',
     'django_filters',
-    'geoads',
     'customads',
+    'geoads',
+
 )
 
 # specific test setting for coverage information
