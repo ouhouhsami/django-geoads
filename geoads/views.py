@@ -327,11 +327,15 @@ class AdCreateView(LoginRequiredMixin, CreateView):
             self.object = form.save(commit=False)
             self.object.user = self.request.user
             user_entered_address = form.cleaned_data['user_entered_address']
-            geocode = Geocoder.geocode(user_entered_address.encode('ascii', 'ignore'))
-            self.object.address = geocode.raw
-            coordinates = geocode[0].coordinates
-            pnt = Point(coordinates[1], coordinates[0], srid=900913)
-            self.object.location = pnt
+            if settings.BYPASS_GEOCODE == True:
+                self.object.address = u"[{u'geometry': {u'location': {u'lat': 48.868356, u'lng': 2.330378}, u'viewport': {u'northeast': {u'lat': 48.8697049802915, u'lng': 2.331726980291502}, u'southwest': {u'lat': 48.8670070197085, u'lng': 2.329029019708498}}, u'location_type': u'ROOFTOP'}, u'address_components': [{u'long_name': u'1', u'types': [u'street_number'], u'short_name': u'1'}, {u'long_name': u'Rue de la Paix', u'types': [u'route'], u'short_name': u'Rue de la Paix'}, {u'long_name': u'2nd arrondissement of Paris', u'types': [u'sublocality', u'political'], u'short_name': u'2nd arrondissement of Paris'}, {u'long_name': u'Paris', u'types': [u'locality', u'political'], u'short_name': u'Paris'}, {u'long_name': u'Paris', u'types': [u'administrative_area_level_2', u'political'], u'short_name': u'75'}, {u'long_name': u'\xcele-de-France', u'types': [u'administrative_area_level_1', u'political'], u'short_name': u'IdF'}, {u'long_name': u'France', u'types': [u'country', u'political'], u'short_name': u'FR'}, {u'long_name': u'75002', u'types': [u'postal_code'], u'short_name': u'75002'}], u'formatted_address': u'1 Rue de la Paix, 75002 Paris, France', u'types': [u'street_address']}]"
+                self.object.location = 'POINT (2.3303780000000001 48.8683559999999986)'
+            else:
+                geocode = Geocoder.geocode(user_entered_address.encode('ascii', 'ignore'))
+                self.object.address = geocode.raw
+                coordinates = geocode[0].coordinates
+                pnt = Point(coordinates[1], coordinates[0], srid=900913)
+                self.object.location = pnt
             self.object.save()
             picture_formset.instance = self.object
             picture_formset.save()
@@ -375,11 +379,15 @@ class AdUpdateView(LoginRequiredMixin, UpdateView):
         if picture_formset.is_valid():
             self.object = form.save(commit=False)
             user_entered_address = form.cleaned_data['user_entered_address']
-            geocode = Geocoder.geocode(user_entered_address.encode('ascii', 'ignore'))
-            self.object.address = geocode.raw
-            coordinates = geocode[0].coordinates
-            pnt = Point(coordinates[1], coordinates[0], srid=900913)
-            self.object.location = pnt
+            if settings.BYPASS_GEOCODE == True:
+                self.object.address = u"[{u'geometry': {u'location': {u'lat': 48.868356, u'lng': 2.330378}, u'viewport': {u'northeast': {u'lat': 48.8697049802915, u'lng': 2.331726980291502}, u'southwest': {u'lat': 48.8670070197085, u'lng': 2.329029019708498}}, u'location_type': u'ROOFTOP'}, u'address_components': [{u'long_name': u'1', u'types': [u'street_number'], u'short_name': u'1'}, {u'long_name': u'Rue de la Paix', u'types': [u'route'], u'short_name': u'Rue de la Paix'}, {u'long_name': u'2nd arrondissement of Paris', u'types': [u'sublocality', u'political'], u'short_name': u'2nd arrondissement of Paris'}, {u'long_name': u'Paris', u'types': [u'locality', u'political'], u'short_name': u'Paris'}, {u'long_name': u'Paris', u'types': [u'administrative_area_level_2', u'political'], u'short_name': u'75'}, {u'long_name': u'\xcele-de-France', u'types': [u'administrative_area_level_1', u'political'], u'short_name': u'IdF'}, {u'long_name': u'France', u'types': [u'country', u'political'], u'short_name': u'FR'}, {u'long_name': u'75002', u'types': [u'postal_code'], u'short_name': u'75002'}], u'formatted_address': u'1 Rue de la Paix, 75002 Paris, France', u'types': [u'street_address']}]"
+                self.object.location = 'POINT (2.3303780000000001 48.8683559999999986)'
+            else:
+                geocode = Geocoder.geocode(user_entered_address.encode('ascii', 'ignore'))
+                self.object.address = geocode.raw
+                coordinates = geocode[0].coordinates
+                pnt = Point(coordinates[1], coordinates[0], srid=900913)
+                self.object.location = pnt
             self.object.save()
             picture_formset.instance = self.object
             picture_formset.save()

@@ -10,6 +10,7 @@ from django.contrib.auth.models import User, AnonymousUser
 from django.http import Http404
 from django.forms import ModelForm
 from django.contrib.contenttypes.models import ContentType
+from django.core import mail
 
 from geoads import views
 from geoads.filtersets import AdFilterSet
@@ -29,11 +30,17 @@ from customads.filtersets import TestAdFilterSet
 from geoads.signals import *
 
 
-class AdDeleteViewTestCase(unittest.TestCase):
+class GeoadsBaseTestCase(unittest.TestCase):
 
     def setUp(self):
         # set up request factory
         self.factory = RequestFactory()
+        TestAd.objects.all().delete()
+        AdSearch.objects.all().delete()
+        mail.outbox = []
+
+
+class AdDeleteViewTestCase(GeoadsBaseTestCase):
 
     def test_owner_delete(self):
         # create an ad and test if owner can delete it
@@ -63,10 +70,7 @@ class AdDeleteViewTestCase(unittest.TestCase):
         self.assertRaises(Http404, view, request, pk=test_ad.pk)
 
 
-class AdUpdateViewTestCase(unittest.TestCase):
-
-    def setUp(self):
-        self.factory = RequestFactory()
+class AdUpdateViewTestCase(GeoadsBaseTestCase):
 
     def test_owner_update(self):
         test_ad = TestAdFactory.create()
@@ -105,10 +109,7 @@ class AdUpdateViewTestCase(unittest.TestCase):
         #self.assertEqual(response.status_code, 301)
 
 
-class AdSearchAndMoreViewTestCase(unittest.TestCase):
-
-    def setUp(self):
-        self.factory = RequestFactory()
+class AdSearchAndMoreViewTestCase(GeoadsBaseTestCase):
 
     def test_home_adsearchview(self):
         # client just get the adsearchview
@@ -177,10 +178,7 @@ class AdSearchAndMoreViewTestCase(unittest.TestCase):
         response = views.AdSearchDeleteView.as_view()(request, pk=ad_search.pk)
 
 
-class AdDetailViewTestCase(unittest.TestCase):
-
-    def setUp(self):
-        self.factory = RequestFactory()
+class AdDetailViewTestCase(GeoadsBaseTestCase):
 
     def test_read(self):
         test_ad = TestAdFactory.create()
@@ -195,10 +193,7 @@ class AdDetailViewTestCase(unittest.TestCase):
         response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
 
 
-class AdCreateViewTestCase(unittest.TestCase):
-
-    def setUp(self):
-        self.factory = RequestFactory()
+class AdCreateViewTestCase(GeoadsBaseTestCase):
 
     def test_create(self):
         # get form
@@ -217,7 +212,7 @@ class AdCreateViewTestCase(unittest.TestCase):
         response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
         # invalid
         form_data = {'brand': 'my_guitar',
-            'user_entered_address': 'fkjfkjfkjfkjf',
+            'user_entered_address': 'fkjfkjfkjfkj',
             'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
             'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
         request = self.factory.post('/', data=form_data, files=[])
@@ -227,7 +222,7 @@ class AdCreateViewTestCase(unittest.TestCase):
         self.assertEqual(response.context_data['form'].errors['user_entered_address'], [u'Indiquer une adresse valide.'])
 
 
-class UtilsFiltersTestCase(unittest.TestCase):
+class UtilsFiltersTestCase(GeoadsBaseTestCase):
 
     def test_booleanfornumberfilter(self):
         tbads = TestBooleanAdFactory.create_batch(20)
@@ -237,12 +232,9 @@ class UtilsFiltersTestCase(unittest.TestCase):
         #self.assertEqual(bfnf.filter(qs, True).count(), TestBooleanAd.objects.filter(boolean=True).count())
 
 
-class GeoadsSignalsTestCase(unittest.TestCase):
+class GeoadsSignalsTestCase(GeoadsBaseTestCase):
 
     def test_adsignal(self):
-        # first, we clear all datas
-        TestAd.objects.all().delete()
-        AdSearch.objects.all().delete()
         #test_ad = TestAdFactory.create()
         # here we create an AdSearch that should hold all ads
         test_adsearch = TestAdSearchFactory.create(content_type=ContentType.objects.get_for_model(TestAd))
@@ -259,8 +251,74 @@ class GeoadsSignalsTestCase(unittest.TestCase):
         test_ad.save()
         self.assertEqual(test_adsearch.adsearchresult_set.all().count(), 0)
 
+    def test_ad_adsearch_and_ads_notifications_1(self):
+        # cases
+        # Ad AdSearch, public True, then Ad corresponding => mail to buyer and vendor
+        adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+            content_type=ContentType.objects.get_for_model(TestAd), public=True)
+        ad = TestAdFactory.create(brand="myfunkybrand")
+        self.assertEquals(len(mail.outbox), 2)
+        adsearch.delete()
+        ad.delete()
 
-class GeoadsTemplateTagsTestCase(unittest.TestCase):
+    def test_ad_adsearch_and_ads_notifications_2(self):
+        # ad AdSearch, public False, then Ad corresponding => mail to buyer
+        adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+            content_type=ContentType.objects.get_for_model(TestAd), public=False)
+        ad = TestAdFactory.create(brand="myfunkybrand")
+        self.assertEquals(len(mail.outbox), 1)
+        # the AdSearch became public, then mail to vendor
+        adsearch.public = True
+        adsearch.save()
+        self.assertEquals(len(mail.outbox), 2)
+        adsearch.delete()
+        ad.delete()
+
+    def test_ad_adsearch_and_ads_notifications_3(self):
+        # ad Ad, then AdSearch corresponding public True => mail to buyer and vendor
+        ad = TestAdFactory.create(brand="myfunkybrand")
+        adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+            content_type=ContentType.objects.get_for_model(TestAd), public=True)
+        self.assertEquals(len(mail.outbox), 2)
+        adsearch.delete()
+        ad.delete()
+
+    def test_ad_adsearch_and_ads_notifications_4(self):
+        # ad Ad, then AdSearch corresponding public False => mail to buyer
+        ad = TestAdFactory.create(brand="myfunkybrand")
+        adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+            content_type=ContentType.objects.get_for_model(TestAd), public=False)
+        self.assertEquals(len(mail.outbox), 1)
+        # the AdSearch become public, then mail to the vendor
+        adsearch.public = True
+        adsearch.save()
+        self.assertEquals(len(mail.outbox), 2)
+
+    def test_ad_adsearch_and_ads_notifications_5(self):
+        # ad Ad, then AdSearch public, not corresponding => no mail
+        ad = TestAdFactory.create(brand="myfunkybrand")
+        adsearch = TestAdSearchFactory.create(search="brand=mytoofunkybrand",
+            content_type=ContentType.objects.get_for_model(TestAd), public=True)
+        self.assertEquals(len(mail.outbox), 0)
+        # modify Ad to correspond => mail to both
+        ad.brand = "mytoofunkybrand"
+        ad.save()
+        self.assertEquals(len(mail.outbox), 2)
+        # resave Ad to be sure, mail isn't send one more time
+        ad.brand = "mytoofunkybrand"
+        ad.save()
+        self.assertEquals(len(mail.outbox), 2)
+        # modify AdSearch to not correspond
+        adsearch.search = "brand=myfunkybrand"
+        adsearch.save()
+        self.assertEquals(len(mail.outbox), 2)
+        # modify AdSearch to corresond => mail to both
+        ad.brand = "myfunkybrand"
+        ad.save()
+        self.assertEquals(len(mail.outbox), 4)
+
+
+class GeoadsTemplateTagsTestCase(GeoadsBaseTestCase):
 
     def test_priceformat(self):
         self.assertEqual(priceformat('3000'), '3 000')

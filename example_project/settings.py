@@ -2,8 +2,10 @@
 import os
 import sys
 
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+
+BYPASS_GEOCODE = True
 
 
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
@@ -21,6 +23,8 @@ COVERAGE_MODULE_EXCLUDES = ['tests$', 'settings$', 'urls$', 'locale$',
                                     'migrations', 'admin']
 
 COVERAGE_REPORT_HTML_OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'coverage_report')
+
+
 
 DATABASES = {
     'default': {
@@ -136,18 +140,37 @@ INSTALLED_APPS = (
 # more details on how to customize your logging configuration.
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': False,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
+    'filters': {
+    },
     'handlers': {
-        'mail_admins': {
-            'level': 'ERROR',
-            'class': 'django.utils.log.AdminEmailHandler'
-        }
+        'null': {
+            'level': 'DEBUG',
+            'class': 'django.utils.log.NullHandler',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
     },
     'loggers': {
-        'django.request': {
-            'handlers': ['mail_admins'],
-            'level': 'ERROR',
+        'django': {
+            'handlers': ['null'],
             'propagate': True,
+            'level': 'INFO',
+        },
+        'geoads': {
+            'handlers': ['console'],
+            'level': 'INFO',
         },
     }
 }

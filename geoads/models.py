@@ -7,9 +7,11 @@ from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.core.mail import send_mail
 
 from autoslug import AutoSlugField
 from jsonfield.fields import JSONField
+from utils import ad_search_result_vendor_notification
 
 
 logger = logging.getLogger(__name__)
@@ -64,6 +66,18 @@ class AdSearch(models.Model):
 
     class Meta:
         db_table = 'ads_adsearch'
+
+    def save(self, *args, **kwargs):
+        previous_public = None
+        if self.id is not None:
+            previous_public = AdSearch.objects.get(id=self.id).public
+        super(AdSearch, self).save(*args, **kwargs)  # Call the "real" save() method.
+        if previous_public != self.public and self.public == True:
+            # send mail to vendors
+            ad_search_results = AdSearchResult.objects.filter(ad_search=self)
+            for instance in ad_search_results:
+                if instance.create_date < self.create_date or previous_public is False:
+                    ad_search_result_vendor_notification(instance.content_object)
 
 
 class AdSearchResult(models.Model):

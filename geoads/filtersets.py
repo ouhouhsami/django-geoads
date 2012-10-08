@@ -7,7 +7,7 @@ from django_filters.filterset import FilterSetMetaclass, FilterSetOptions
 
 from geoads.models import Ad
 from geoads.filters import LocationFilter
-from example_project.customads.models import TestAd
+#from example_project.customads.models import TestAd
 
 
 class GeoAdsFilterSetMetaclass(FilterSetMetaclass):
