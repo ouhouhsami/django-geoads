@@ -22,11 +22,11 @@ setup(
     zip_safe=False,
     include_package_data=True,
     install_requires=[
-        'Django==1.3',
-        'psycopg2==2.4.1',  # Python-PostgreSQL Database Adapter
+        #'Django==1.3',
+        #'psycopg2==2.4.1',  # Python-PostgreSQL Database Adapter
         # 2.4.1 version for this reasaon:
         # http://obroll.com/solve-psycopg2-programmingerror-autocommit-in-django-1-3-1-postgresql-run-test/
-        'django-moderation'
+        #'django-moderation'
     ],
     classifiers=['Development Status :: 2 - Pre-Alpha',
     'Environment :: Web Environment',
