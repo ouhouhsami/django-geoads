@@ -221,6 +221,24 @@ class AdCreateViewTestCase(GeoadsBaseTestCase):
         response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
         self.assertEqual(response.context_data['form'].errors['user_entered_address'], [u'Indiquer une adresse valide.'])
 
+    def test_create_same_slug(self):
+        user = UserFactory.create()
+        form_data = {'brand': 'my_guitar',
+            'user_entered_address': '5 rue de Vernueil, Paris',
+            'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
+            'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
+        request = self.factory.post('/', data=form_data, files=[])
+        request.user = user
+        response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
+
+        form_data = {'brand': 'my_guitar',
+            'user_entered_address': '5 rue de Vernueil, Paris',
+            'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
+            'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
+        request = self.factory.post('/', data=form_data, files=[])
+        request.user = user
+        response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
+
 
 class UtilsFiltersTestCase(GeoadsBaseTestCase):
 

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-
 from distutils.core import setup
 from setuptools import setup, find_packages
+import re
+import os
 
 with open('README.md') as f:
     readme = f.read()
@@ -9,16 +10,24 @@ with open('README.md') as f:
 with open('LICENSE') as f:
     license = f.read()
 
+
+def get_version():
+    """
+    Return package version as listed in `__version__` in `init.py`.
+    """
+    init_py = open(os.path.join('geoads', '__init__.py')).read()
+    return re.match("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
+
 setup(
     name='django-geoads',
-    version='0.0.1',
+    version=get_version(),
     description='django app for geolocated ads',
     long_description=readme,
     author='Samuel Goldszmidt',
     author_email='samuel.goldszmidt@gmail.com',
     url='https://github.com/ouhouhsami/django-geoads',
     license=license,
-    packages=find_packages(exclude=('tests', 'docs')),
+    packages=find_packages(exclude=('docs', )),
     zip_safe=False,
     include_package_data=True,
     install_requires=[

@@ -321,6 +321,7 @@ class AdCreateView(LoginRequiredMixin, CreateView):
     ad_picture_form = AdPictureForm
 
     def form_valid(self, form):
+        logger.info('Form is valid, Ad creation')
         context = self.get_context_data()
         picture_formset = context['picture_formset']
         if picture_formset.is_valid():

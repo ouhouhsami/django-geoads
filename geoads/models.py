@@ -107,7 +107,7 @@ class Ad(models.Model):
     """
     user = models.ForeignKey(User)
     slug = AutoSlugField(populate_from='get_full_description',
-                         always_update=True, unique=True)
+        always_update=True, unique=True)
     description = models.TextField("", null=True, blank=True)
     user_entered_address = models.CharField("Adresse", max_length=2550,
             help_text="Adresse complète, ex. : <i>5 rue de Verneuil Paris</i>")
@@ -126,8 +126,11 @@ class Ad(models.Model):
     filterset = None  # static var that hold the related filterset
 
     def get_full_description(self, instance=None):
-        """return a resume description for slug"""
-        return self.slug
+        raise NotImplementedError
+
+        #"""return a resume description for slug"""
+        #print 'kokok', self.slug
+        #return self.slug
 
     def __unicode__(self):
         return self.slug
