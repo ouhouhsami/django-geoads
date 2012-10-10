@@ -24,13 +24,11 @@ COVERAGE_MODULE_EXCLUDES = ['tests$', 'settings$', 'urls$', 'locale$',
 
 COVERAGE_REPORT_HTML_OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'coverage_report')
 
-
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'example_project_db',
-        'USER': 'geoads_user'
+        'NAME': 'geoads_db',
+        'USER': 'postgres'
     }
 }
 
