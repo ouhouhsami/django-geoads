@@ -1,4 +1,4 @@
-# coding=utf-8
+#-*- coding: utf-8 -*-
 from django import forms
 from django.forms import ModelForm
 from django.contrib.gis.geos import Point
@@ -83,7 +83,6 @@ class BaseAdForm(ModelForm):
         data = self.cleaned_data['user_entered_address']
         if settings.BYPASS_GEOCODE == True:
             if data == 'fkjfkjfkjfkj':  # hook to not use BYPASS_GEOCODE
-
                 raise forms.ValidationError(u"Indiquer une adresse valide.")
             return data
         else:

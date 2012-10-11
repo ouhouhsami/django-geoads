@@ -1,3 +1,4 @@
+#-*- coding: utf-8 -*-
 from django.db.models.signals import post_save
 from signals import (ad_search_post_save_handler,
     ad_search_result_post_save_handler, ad_post_save_handler)

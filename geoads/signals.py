@@ -1,4 +1,4 @@
-# coding=utf-8
+#-*- coding: utf-8 -*-
 import logging
 
 from geoads.models import AdSearchResult, AdSearch
@@ -14,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 def get_subclasses(classes, level=0):
     """
-        Return the list of all subclasses given class (or list of classes) has.
-        Inspired by this question:
-        http://stackoverflow.com/questions/3862310/how-can-i-find-all-subclasses-of-a-given-class-in-python
+    Return the list of all subclasses given class (or list of classes) has.
+    Inspired by this question:
+    http://stackoverflow.com/questions/3862310/how-can-i-find-all-subclasses-of-a-given-class-in-python
+
     """
     # for convenience, only one class can can be accepted as argument
     # converting to list if this is the case
@@ -38,6 +39,7 @@ def receiver_subclasses(signal, sender, dispatch_uid_prefix, **kwargs):
         @receiver_subclasses(post_save, sender=MyModel)
         def signal_receiver(sender, **kwargs):
             ...
+
     """
     def _decorator(func):
         all_senders = get_subclasses(sender)
@@ -49,9 +51,10 @@ def receiver_subclasses(signal, sender, dispatch_uid_prefix, **kwargs):
 
 
 def _is_ad_in_ad_search(current_ad, ad_search):
-    '''
+    """
     Utils function that returns True if an Ad belongs to an AdSearch
-    '''
+
+    """
     q = QueryDict(ad_search.search)
     #logger.info('QueryDict for filtering Ads that could belong to: %s' % q)
     #logger.info('\t\t_is_ad_in_ad_search Ad Search content_type: %s' % ad_search.content_type)

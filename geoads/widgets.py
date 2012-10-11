@@ -1,6 +1,8 @@
-# coding=utf-8
-""" Ads widgets """
+#-*- coding: utf-8 -*-
+"""
+Ads widgets
 
+"""
 from django import forms
 from django.utils.encoding import force_unicode
 from django.utils.translation import ugettext
@@ -16,6 +18,7 @@ class ImageWidget(forms.FileInput):
     """
     Image widget
     Used for rendering ImageField in Ad form
+
     """
     template = u'%(input)s<div class="thumbnail" style="float:right;"><a  href="%(image)s" target="_blank"><img class="img-polaroid" src="%(image_thumbnail)s" /></a><p>Aperçu</p></div>'
 
@@ -55,6 +58,7 @@ class Select(floppyforms.Select, Input):
 class IndifferentNullBooleanSelect(floppyforms.NullBooleanSelect, Select):
     """
     Select widget for use with null boolean select field
+
     """
     def render(self, name, value, attrs=None, choices=()):
         choices = ((u'1', ugettext(u'Indifférent')),
@@ -70,6 +74,7 @@ class IndifferentNullBooleanSelect(floppyforms.NullBooleanSelect, Select):
 class GooglePolygonWidget(Input):
     """
     Map polygon widget (using Google map api v3)
+
     """
     template_name = 'floppyforms/gis/poly_google.html'
 
@@ -111,6 +116,7 @@ class BooleanExtendedInput(Input):
 class SpecificRangeWidget(forms.MultiWidget):
     """
     Specific Range Widget, a range widget with min and max inputs
+
     """
 
     def __init__(self, attrs=None):

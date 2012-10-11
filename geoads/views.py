@@ -1,11 +1,10 @@
-# coding=utf-8
+#-*- coding: utf-8 -*-
 """
 Views for ads application
 
 This module provides CRUD absraction functions.
 """
 import logging
-from datetime import datetime
 from pygeocoder import Geocoder
 
 from django.conf import settings
@@ -16,9 +15,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.contrib.gis.geos import Point
 from django.core.mail import send_mail
-from django.core import serializers
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
 from django.http import QueryDict, Http404, HttpResponseRedirect
 from django.shortcuts import render_to_response, redirect

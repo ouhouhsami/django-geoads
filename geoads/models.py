@@ -1,4 +1,4 @@
-# coding=utf-8
+#-*- coding: utf-8 -*-
 import logging
 
 from django.db import models
@@ -6,8 +6,7 @@ from django.contrib.gis.db import models
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
-from django.core.mail import send_mail
+
 
 from autoslug import AutoSlugField
 from jsonfield.fields import JSONField
@@ -56,6 +55,7 @@ class AdSearch(models.Model):
     Application using this need to have a proxy model
     to define unicode string representation of each
     AdSearch depending on ad fields.
+
     """
     search = models.CharField(max_length=2550)
     user = models.ForeignKey(User)
@@ -85,6 +85,7 @@ class AdSearchResult(models.Model):
     Ad search result
 
     Hold ad which corresponds to an AdSearch instance
+
     """
     ad_search = models.ForeignKey(AdSearch)
     content_type = models.ForeignKey(ContentType)
@@ -127,10 +128,6 @@ class Ad(models.Model):
 
     def get_full_description(self, instance=None):
         raise NotImplementedError
-
-        #"""return a resume description for slug"""
-        #print 'kokok', self.slug
-        #return self.slug
 
     def __unicode__(self):
         return self.slug
