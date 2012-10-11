@@ -436,17 +436,6 @@ class AdDeleteView(LoginRequiredMixin, DeleteView):
     model = Ad  # "normally" overrided in specific project urls
     template_name = "geoads/ad_confirm_delete.html"
 
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete_date = datetime.now()
-        self.object.save()
-        serialized_obj = serializers.serialize('json', [self.object, ])
-        default_storage.save('deleted/%s-%s.json' % (self.object.id,
-                                                    self.object.slug),
-                                    ContentFile(serialized_obj))
-        self.object.delete()
-        return HttpResponseRedirect(self.get_success_url())
-
     def get_object(self, queryset=None):
         """ Ensure object is owned by request.user. """
         obj = super(AdDeleteView, self).get_object()
