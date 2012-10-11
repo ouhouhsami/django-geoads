@@ -10,3 +10,4 @@ django-floppyforms==0.4.7
 psycopg2==2.4
 pygeocoder==1.1.4
 wsgiref==0.1.2
+factory_boy  # used for test purpose only
