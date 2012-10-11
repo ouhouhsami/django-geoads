@@ -2,8 +2,13 @@
 import os
 import sys
 os.environ['DJANGO_SETTINGS_MODULE'] = 'example_project.settings'
-test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+test_dir = os.path.dirname(os.path.abspath(__file__))
+lib_dir = os.path.dirname(test_dir)
+
+sys.path.insert(0, lib_dir)
 sys.path.insert(0, test_dir)
+
+print sys.path
 
 from django.test.utils import get_runner
 from django.conf import settings

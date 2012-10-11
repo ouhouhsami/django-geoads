@@ -1,1 +1,0 @@
-[{"pk": 2, "model": "customads.testad", "fields": {"update_date": "2012-09-05 17:28:58", "delete_date": "2012-09-05 17:28:58", "create_date": "2012-09-05 17:28:58", "description": null, "brand": null, "visible": true, "location": "POINT (2.3479424000000000 48.8714721999999995)", "address": null, "user_entered_address": "1 rue refaite Paris", "slug": "jhome", "user": 2}}]

@@ -21,7 +21,7 @@ def get_version():
 setup(
     name='django-geoads',
     version=get_version(),
-    description='django app for geolocated ads',
+    description='Django app for geolocated ads',
     long_description=readme,
     author='Samuel Goldszmidt',
     author_email='samuel.goldszmidt@gmail.com',
