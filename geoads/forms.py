@@ -15,6 +15,7 @@ class AdPictureForm(ModelForm):
     Ad picture form
     Warning: just used for class based views in this app
     Applications could/should make it more pretty
+
     """
     image = forms.ImageField(widget=ImageWidget(), required=False)
 
@@ -25,6 +26,7 @@ class AdPictureForm(ModelForm):
 class AdContactForm(ModelForm):
     """
     Ad contact form
+
     """
     class Meta:
         model = AdContact
@@ -34,6 +36,7 @@ class AdContactForm(ModelForm):
 class AdSearchForm(ModelForm):
     """
     Ad search form
+
     """
     class Meta:
         model = AdSearch
@@ -46,6 +49,7 @@ class AdSearchForm(ModelForm):
 class AdSearchResultContactForm(ModelForm):
     """
     Ad Search Result Contact Form
+
     """
     message = forms.CharField(
         widget=forms.Textarea(attrs={'rows': 4}), required=False
@@ -61,6 +65,7 @@ class AdSearchResultContactForm(ModelForm):
 class AdSearchUpdateForm(ModelForm):
     """
     Ad search form for update
+
     """
     class Meta:
         model = AdSearch
@@ -71,8 +76,8 @@ class BaseAdForm(ModelForm):
     """
     Base ad form
     Use it with your own Ad instance
-    """
 
+    """
     def clean_user_entered_address(self):
         # here we try to figure if user entered address
         # is an existing address

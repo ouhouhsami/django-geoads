@@ -97,7 +97,7 @@ class AdSearchResult(models.Model):
 
     class Meta:
         db_table = 'ads_adsearchresult'
-        # ensure that an ad is only present once for 
+        # ensure that an ad is only present once for
         unique_together = ('ad_search', 'content_type', 'object_pk')
 
 

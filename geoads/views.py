@@ -3,6 +3,7 @@
 Views for ads application
 
 This module provides CRUD absraction functions.
+
 """
 import logging
 from pygeocoder import Geocoder
