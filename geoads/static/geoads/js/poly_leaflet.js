@@ -50,7 +50,7 @@ $(document).ready(function() {
 			var point = points[i].split(" ");
 			latLngs.push([parseFloat(point[1]), parseFloat(point[0])]);
 		}
-		poly = new L.Polygon(latLngs);
+		poly = new L.Polygon(latLngs, {color:polygonStyle.strokeColor});
 		drawnItems.clearLayers();
 		drawnItems.addLayer(poly);
 		map.fitBounds(poly.getBounds());
@@ -61,17 +61,14 @@ $(document).ready(function() {
 	for(i=0; i<homes.length; i++){
 		var home = homes[i];
 		var latLng = [parseFloat(home.y), parseFloat(home.x)];
-		var icon = L.icon({iconUrl:home.icon, iconSize: [32, 37], iconAnchor: [16, 36]});
+		var icon = L.icon({iconUrl:home.icon, iconSize: [32, 37], iconAnchor: [16, 36], popupAnchor: [0, -19]});
 		var marker = new L.marker(latLng, {icon: icon});
-		if(home.visible === true){
+		if(home.visible === 'true'){
 			marker.addTo(map);
 		}
-		marker.popup = new L.popup();
-		marker.popup .setLatLng(latLng);
 		marker.html = $('.' + homes[i].id).html();
 		marker.on('click', function(e){
-			e.target.popup.setContent(e.target.html);
-			e.target.popup.openOn(map);
+			e.target.bindPopup(e.target.html).openPopup();
 		});
 		homes[i].marker = marker;
 	}
