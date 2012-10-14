@@ -10,17 +10,9 @@ with open('README.md') as f:
 with open('LICENSE') as f:
     license = f.read()
 
-
-def get_version():
-    """
-    Return package version as listed in `__version__` in `init.py`.
-    """
-    init_py = open(os.path.join('geoads', '__init__.py')).read()
-    return re.match("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
-
 setup(
     name='django-geoads',
-    version=get_version(),
+    version='0.0.2',
     description='Django app for geolocated ads',
     long_description=readme,
     author='Samuel Goldszmidt',

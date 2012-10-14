@@ -8,6 +8,7 @@ from pygeocoder import Geocoder, GeocoderError
 
 from geoads.models import AdPicture, AdContact, AdSearch, AdSearchResult, Ad
 from geoads.widgets import ImageWidget
+from geoads.utils import geocode
 
 
 class AdPictureForm(ModelForm):
@@ -92,12 +93,8 @@ class BaseAdForm(ModelForm):
             return data
         else:
             try:
-                geocode = Geocoder.geocode(data.encode('ascii', 'ignore'))
-                self.address = geocode.raw
-                coordinates = geocode[0].coordinates
-                pnt = Point(coordinates[1], coordinates[0], srid=900913)
-                self.location = pnt
-            except GeocoderError:
+                geocode(data.encode('ascii', 'ignore'))
+            except:  # TODO: create GeocodeError
                 raise forms.ValidationError(u"Indiquer une adresse valide.")
             return data
 

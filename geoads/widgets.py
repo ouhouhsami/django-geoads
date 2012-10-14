@@ -71,26 +71,22 @@ class IndifferentNullBooleanSelect(floppyforms.NullBooleanSelect, Select):
         return Select.render(self, name, value, attrs, choices=choices)
 
 
-class GooglePolygonWidget(Input):
+class MapWidget(Input):
     """
-    Map polygon widget (using Google map api v3)
+    Abstract Map polygon widget
 
     """
-    template_name = 'floppyforms/gis/poly_google.html'
-
     def __init__(self, *args, **kwargs):
         self.ads = kwargs.get('ads', None)
-        #self.search = kwargs.get('search', False)
         self.strokeColor = kwargs.get('strokeColor', '#FF0000')
         self.fillColor = kwargs.get('fillColor', '#00FF00')
         self.lat = kwargs.get('lat', 48.856)
         self.lng = kwargs.get('lng', 2.333)
-        super(GooglePolygonWidget, self).__init__()
+        super(MapWidget, self).__init__()
 
     def get_context_data(self):
-        ctx = super(GooglePolygonWidget, self).get_context_data()
+        ctx = super(MapWidget, self).get_context_data()
         ctx['ads'] = self.ads
-        #ctx['search'] = self.search
         ctx['fillColor'] = self.fillColor
         ctx['strokeColor'] = self.strokeColor
         ctx['lat'] = self.lat
@@ -99,9 +95,43 @@ class GooglePolygonWidget(Input):
 
     class Media:
         js = (
-            'http://maps.googleapis.com/maps/api/js?sensor=false&amp;libraries=drawing',
-            'js/poly_googlemap.js',
+            'geoads/js/poly_utils.js',
         )
+
+
+class GooglePolygonWidget(MapWidget):
+    """
+    Map polygon widget (using Google map api v3)
+
+    """
+    template_name = 'floppyforms/gis/poly_google.html'
+
+    class Media:
+        js = (
+            'http://maps.googleapis.com/maps/api/js?sensor=false&amp;libraries=drawing',
+            'geoads/js/poly_googlemap.js',
+        )
+
+
+class LeafletWidget(MapWidget):
+    """
+    Map polygon widget (using OpenStreetMap)
+
+    """
+    template_name = 'floppyforms/gis/poly_leaflet.html'
+
+    class Media:
+        js = (
+            'http://cdn.leafletjs.com/leaflet-0.4/leaflet.js',
+            'geoads/js/poly_leaflet.js',
+            'geoads/Leaflet.draw/leaflet.draw.js'
+        )
+        css = {
+            'all': (
+                'http://cdn.leafletjs.com/leaflet-0.4/leaflet.css',
+                'geoads/Leaflet.draw/leaflet.draw.css'
+            )
+        }
 
 
 class BooleanExtendedNumberInput(NumberInput):

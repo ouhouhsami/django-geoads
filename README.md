@@ -11,3 +11,7 @@ geoads.models.Ad, and set up your urls to use the provided Class-Based Views.
 
 These Class-Based Views will help you (or your users) to create/read/update/delete ads, 
 but also search ads, and recording their search.
+
+
+
+This app uses also https://github.com/jacobtoye/Leaflet.draw
