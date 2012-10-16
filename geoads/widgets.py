@@ -8,7 +8,7 @@ from django.utils.encoding import force_unicode
 from django.utils.translation import ugettext
 from django.utils.safestring import mark_safe
 
-from floppyforms.widgets import Input, NumberInput
+from floppyforms.widgets import Input, NumberInput, NullBooleanSelect, Select
 import floppyforms
 
 from geoads.templatetags.ads_tag import create_thumbnail_image_file
@@ -39,36 +39,14 @@ class ImageWidget(forms.FileInput):
         return mark_safe(output)
 
 
-class Select(floppyforms.Select, Input):
-    template_name = 'floppyforms/select.html'
-
-    def render(self, name, value, attrs=None, choices=()):
-        if value is None:
-            value = ''
-        #just because of the line below, we need to not CHAIN
-        #choices = chain(self.choices, choices)
-        final_choices = []
-        for option_value, option_label in choices:
-            final_choices.append((force_unicode(option_value), option_label))
-        extra = {'choices': final_choices}
-        return Input.render(self, name, value, attrs=attrs,
-                            extra_context=extra)
-
-
-class IndifferentNullBooleanSelect(floppyforms.NullBooleanSelect, Select):
-    """
-    Select widget for use with null boolean select field
-
-    """
-    def render(self, name, value, attrs=None, choices=()):
+class IndifferentNullBooleanSelect(NullBooleanSelect):
+    def __init__(self, attrs=None):
         choices = ((u'1', ugettext(u'Indifférent')),
-                   (u'2', ugettext('Yes')),
-                   (u'3', ugettext('No')))
-        try:
-            value = {True: u'2', False: u'3', u'2': u'2', u'3': u'3'}[value]
-        except KeyError:
-            value = u'1'
-        return Select.render(self, name, value, attrs, choices=choices)
+                   (u'2', ugettext(u'Oui')),
+                   (u'3', ugettext(u'Non')))
+        # below, see here for an explanation
+        # https://github.com/brutasse/django-floppyforms/issues/52
+        Select.__init__(self, attrs, choices)
 
 
 class MapWidget(Input):
