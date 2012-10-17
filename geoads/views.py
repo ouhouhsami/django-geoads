@@ -272,17 +272,18 @@ class AdDetailView(DetailView):
     model = Ad  # changed in urls
     context_object_name = 'ad'
     template_name = 'geoads/view.html'
+    contact_form = AdContactForm
 
     def get_context_data(self, **kwargs):
         context = super(AdDetailView, self).get_context_data(**kwargs)
-        context['contact_form'] = AdContactForm()
+        context['contact_form'] = self.contact_form()
         context['sent_mail'] = False
         return context
 
     @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
         """ used for contact message between users """
-        contact_form = AdContactForm(request.POST)
+        contact_form = self.contact_form(request.POST)
         sent_mail = False
         if contact_form.is_valid():
             instance = contact_form.save(commit=False)
@@ -304,8 +305,6 @@ class AdDetailView(DetailView):
                                   context_instance=RequestContext(request))
 
     def get_queryset(self):
-        # below should return moderated objects w/ django-moderation
-        # need latter expertise
         return self.model.objects.all()
 
 
