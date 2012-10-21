@@ -19,7 +19,8 @@ class GeoAdsFilterSetMetaclass(FilterSetMetaclass):
             bases, attrs)
         opts = new_class._meta = FilterSetOptions(getattr(new_class, 'Meta',
             None))
-        opts.model.filterset = new_class
+        #opts.model.filterset = new_class
+        opts.model.objects.set_filterset(new_class)
         return new_class
 
 

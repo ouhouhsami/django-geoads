@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 class AdPicture(models.Model):
     """
     Ad picture model
-
     """
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
@@ -35,7 +34,6 @@ class AdPicture(models.Model):
 class AdContact(models.Model):
     """
     Ad contact model
-
     """
     user = models.ForeignKey(User)
     content_type = models.ForeignKey(ContentType)
@@ -55,7 +53,6 @@ class AdSearch(models.Model):
     Application using this need to have a proxy model
     to define unicode string representation of each
     AdSearch depending on ad fields.
-
     """
     search = models.CharField(max_length=2550)
     user = models.ForeignKey(User)
@@ -85,7 +82,6 @@ class AdSearchResult(models.Model):
     Ad search result
 
     Hold ad which corresponds to an AdSearch instance
-
     """
     ad_search = models.ForeignKey(AdSearch)
     content_type = models.ForeignKey(ContentType)
@@ -101,10 +97,23 @@ class AdSearchResult(models.Model):
         unique_together = ('ad_search', 'content_type', 'object_pk')
 
 
+class AdManager(models.GeoManager):
+    """
+    Ad Manager, used to get filterset linked to Ad model
+    so we get it by calling Ad.objects.filterset
+    """
+    filterset = None
+
+    def filterset(self):
+        return self.filterset
+
+    def set_filterset(self, filterset):
+        self.filterset = filterset
+
+
 class Ad(models.Model):
     """
     Ad abstract base model
-
     """
     user = models.ForeignKey(User)
     slug = AutoSlugField(populate_from='get_full_description',
@@ -122,9 +131,10 @@ class Ad(models.Model):
     ad_search_results = generic.GenericRelation(AdSearchResult,
         object_id_field="object_pk", content_type_field="content_type")
 
-    objects = models.GeoManager()
+    #objects = models.GeoManager()
+    objects = AdManager()
 
-    filterset = None  # static var that hold the related filterset
+    #filterset = None  # static var that hold the related filterset
 
     def get_full_description(self, instance=None):
         raise NotImplementedError

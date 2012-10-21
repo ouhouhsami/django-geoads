@@ -177,7 +177,8 @@ class AdSearchView(ListView):
         return self.render_to_response(context)
 
     def get_queryset(self):
-        filter = self.model.filterset(self._q)
+        #filter = self.model.filterset(self._q)
+        filter = self.model.objects.filterset(self._q)
         return filter
 
     def get_context_data(self, initial_ads=None, ad_search_form=None, **kwargs):

@@ -110,7 +110,8 @@ def ad_search_post_save_handler(sender, instance, created, **kwargs):
     else:
         logger.info('Not a new instance of Adsearch')
     q = QueryDict(instance.search)
-    filter = instance.content_type.model_class().filterset(q or None)
+    #filter = instance.content_type.model_class().filterset(q or None)
+    filter = instance.content_type.model_class().objects.filterset(q or None)
     # here we remove ads that no more belongs to AdSearch
     ads = AdSearchResult.objects.filter(ad_search=instance)
     for ad in ads:
