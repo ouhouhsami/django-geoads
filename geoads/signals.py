@@ -59,7 +59,7 @@ def _is_ad_in_ad_search(current_ad, ad_search):
     #logger.info('QueryDict for filtering Ads that could belong to: %s' % q)
     #logger.info('\t\t_is_ad_in_ad_search Ad Search content_type: %s' % ad_search.content_type)
     #logger.info('\t\t_is_ad_in_ad_search Filterset used: %s' % ad_search.content_type.model_class().filterset)
-    filter = ad_search.content_type.model_class().filterset(q or None)
+    filter = ad_search.content_type.model_class().objects.filterset(q or None)
     # here we test if current_ad is in results of filter
     if current_ad in filter.qs:
         logger.info('\t\t %s in %s' % (current_ad, ad_search))
