@@ -9,26 +9,29 @@ register = template.Library()
 
 
 def has_value(field):
-    #print field.name, field.field.__class__.__name__
+    """
+    return True if the field has a value
+    """
     if field.field.__class__.__name__ == 'RangeField' or field.field.__class__.__name__ == 'NumericRangeField':
         if (field.data[0] == '' and field.data[1] == '') or (field.data[0] is None and field.data[1] is None):
-            return 'has_not_value'
+            return False
     elif field.field.__class__.__name__ == 'Field':
         if field.data is None:
-            return 'has_not_value'
+            return False
     elif field.field.__class__.__name__ == 'NullBooleanField':
         if field.data is None:
-            return 'has_not_value'
+            return False
     elif field.field.__class__.__name__ == 'ChoiceField':
         if field.data is None or field.data == '':
-            return 'has_not_value'
+            return False
     elif field.field.__class__.__name__ == 'MultipleChoiceField':
         # TODO: review below but dont need for this case, 
         # I have got just one always displayed multichoicefield
         if field.data is None:
             return False
-    return 'has_value'
+    return True
 
+# this is unused, while above is used
 register.simple_tag(has_value)
 
 

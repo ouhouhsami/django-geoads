@@ -2,6 +2,9 @@
 """
 Ads widgets
 
+Provide:
+- a default widget to Ad model (ImageWidget, for image)
+- default widgets for filtering form (MapWidget, IndifferentNullBooleanSelect ...)
 """
 from django import forms
 from django.utils.encoding import force_unicode

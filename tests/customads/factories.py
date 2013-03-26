@@ -9,7 +9,7 @@ from django.conf import settings
 
 from geoads.models import Ad, AdSearch
 
-from models import TestAd, TestBooleanAd
+from models import TestAd, TestNumberAd
 
 
 ADDRESSES = ["13 Place d'Aligre, Paris",
@@ -61,10 +61,10 @@ class TestAdFactory(BaseAdFactory):
     brand = factory.Sequence(lambda n: 'brand%s' % n)
 
 
-class TestBooleanAdFactory(BaseAdFactory):
-    FACTORY_FOR = TestBooleanAd
+class TestNumberAdFactory(BaseAdFactory):
+    FACTORY_FOR = TestNumberAd
 
-    boolean = random.choice([True, False])
+    number = factory.Iterator([1, 2, None, 3, 4, None])
 
 
 class TestAdSearchFactory(factory.Factory):

@@ -1,32 +1,29 @@
 # coding=utf-8
 """
 GeoAd test module
-
 """
+from django_rq import get_worker
 
 from django.utils import unittest
 from django.test.client import RequestFactory
-from django.contrib.auth.models import User, AnonymousUser
 from django.http import Http404
-from django.forms import ModelForm
 from django.contrib.contenttypes.models import ContentType
-from django.core import mail
+
+from mock_django import mock_signal_receiver
 
 from geoads import views
 from geoads.filtersets import AdFilterSet
 from geoads.models import AdSearch
-from geoads.forms import BaseAdForm
 from geoads.filters import BooleanForNumberFilter
 from geoads.templatetags.ads_tag import priceformat
+from geoads.models import Ad
+from geoads.utils import geocode
 
-from customads.models import TestAd, TestBooleanAd
+from customads.models import TestAd, TestNumberAd
 from customads.forms import TestAdForm
-from customads.factories import UserFactory, TestAdFactory, TestBooleanAdFactory, TestAdSearchFactory
-# UGLY UGLY UGLY fucking hack, I need to import this
-# to be sure that my hook to set filterset on model instance
-# will be available
+from customads.factories import UserFactory, TestAdFactory, TestNumberAdFactory, TestAdSearchFactory
 from customads.filtersets import TestAdFilterSet
-#from geoads.models import Ad
+
 from geoads.signals import *
 
 
@@ -37,7 +34,6 @@ class GeoadsBaseTestCase(unittest.TestCase):
         self.factory = RequestFactory()
         TestAd.objects.all().delete()
         AdSearch.objects.all().delete()
-        mail.outbox = []
 
 
 class AdDeleteViewTestCase(GeoadsBaseTestCase):
@@ -142,7 +138,6 @@ class AdSearchAndMoreViewTestCase(GeoadsBaseTestCase):
         request.user = user
         response = views.AdSearchView.as_view(model=TestAd)(request)
 
-
     def test_create_update_read__delete_search(self):
         test_ad = TestAdFactory.create()
         # here we build a search ad form
@@ -188,7 +183,7 @@ class AdDetailViewTestCase(GeoadsBaseTestCase):
     def test_send_message(self):
         test_ad = TestAdFactory.create()
         user = UserFactory.create()
-        request = self.factory.post('/', data={'message':'Hi buddy !'})
+        request = self.factory.post('/', data={'message': 'Hi buddy !'})
         request.user = user
         response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
 
@@ -243,97 +238,201 @@ class AdCreateViewTestCase(GeoadsBaseTestCase):
 class UtilsFiltersTestCase(GeoadsBaseTestCase):
 
     def test_booleanfornumberfilter(self):
-        tbads = TestBooleanAdFactory.create_batch(20)
-        bfnf = BooleanForNumberFilter(name='boolean')
-        qs = TestBooleanAd.objects.all()
-        #self.assertEqual(qs, bfnf.filter(qs, None))
-        #self.assertEqual(bfnf.filter(qs, True).count(), TestBooleanAd.objects.filter(boolean=True).count())
+        tbads = TestNumberAdFactory.create_batch(20)
+        bfnf = BooleanForNumberFilter(name='number')
+        qs = TestNumberAd.objects.all()
+        self.assertEqual(qs, bfnf.filter(qs, None))
+        self.assertEqual(bfnf.filter(qs, True).count(), TestNumberAd.objects.filter(number__isnull=False).count())
+        TestNumberAd.objects.all().delete()
+
+
+class FiltersetsTestCase(GeoadsBaseTestCase):
+
+    def test_filterset(self):
+        ad = TestAdFactory.create(brand="myfunkybrand")
+        filterset = TestAdFilterSet({'brand': 'myfunkybrand'})
+        self.assertEquals(len(filterset), 1)
+        self.assertEquals(filterset[0], ad)
+        ad.delete()
+
+
+class ModelsTestCase(GeoadsBaseTestCase):
+
+    def test_model_without_get_full_description(self):
+        """
+        Test that a model which inherit from Ad base model
+        define a get_full_description method,
+        otherwise it will raise a NotImplementedError
+        """
+        class BadAd(Ad):
+            pass
+        ba = BadAd()
+        self.assertRaises(NotImplementedError, ba.get_full_description)
+
+
+class UtilsTestCase(GeoadsBaseTestCase):
+
+    def test_geocode(self):
+        geo = geocode('13 place d\'Aligre Paris')
+        self.assertTrue('address' in geo)
+        self.assertTrue('location' in geo)
 
 
 class GeoadsSignalsTestCase(GeoadsBaseTestCase):
 
-    def test_adsignal(self):
-        #test_ad = TestAdFactory.create()
-        # here we create an AdSearch that should hold all ads
-        test_adsearch = TestAdSearchFactory.create(content_type=ContentType.objects.get_for_model(TestAd))
-        # here we create an Ad, and should then get it inside AdSearchResult of test_adsearch
-        test_ad = TestAdFactory.create()
-        self.assertEqual(test_adsearch.adsearchresult_set.all().count(), 1)
-        test_adsearch.search = "brand=myfunkybrand"
-        test_adsearch.save()
-        self.assertEqual(test_adsearch.adsearchresult_set.all().count(), 0)
-        test_adsearch.search = "brand=%s" % (test_ad.brand)
-        test_adsearch.save()
-        self.assertEqual(test_adsearch.adsearchresult_set.all().count(), 1)
-        test_ad.brand = "newbrandnameduetofuckingmarketingservice"
-        test_ad.save()
-        self.assertEqual(test_adsearch.adsearchresult_set.all().count(), 0)
+    def test_ad_adsearch_and_ads_signals_1(self):
+        '''
+        Test if signals are well sent to the buyer and the seller
+        in case the search is created before the ad
+        and initially with public set to True
+        '''
+        with mock_signal_receiver(geoad_new_relevant_ad_for_search) as receiver_buyer:
+            with mock_signal_receiver(geoad_new_interested_user) as receiver_vendor:
+                adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+                                                      content_type=ContentType.objects.get_for_model(TestAd),
+                                                      public=True)
+                ad = TestAdFactory.create(brand="myfunkybrand")
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 1)
+                self.assertEquals(receiver_vendor.call_count, 1)
+                adsearch.delete()
+                ad.delete()
 
-    def test_ad_adsearch_and_ads_notifications_1(self):
-        # cases
-        # Ad AdSearch, public True, then Ad corresponding => mail to buyer and vendor
+    def test_ad_adsearch_and_ads_signals_2(self):
+        """
+        Test if signals are well sent to the buyer and the seller
+        in case the search is created before the ad
+        and initially with public set to False, and in a second time set to True
+        """
+        with mock_signal_receiver(geoad_new_relevant_ad_for_search) as receiver_buyer:
+            with mock_signal_receiver(geoad_new_interested_user) as receiver_vendor:
+                adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+                                                      content_type=ContentType.objects.get_for_model(TestAd),
+                                                      public=False)
+                ad = TestAdFactory.create(brand="myfunkybrand")
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 1)
+                adsearch.public = True
+                adsearch.save()
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_vendor.call_count, 1)
+                adsearch.delete()
+                ad.delete()
+
+    def test_ad_adsearch_and_ads_signals_3(self):
+        """
+        Test if signals are well sent to the buyer and the seller
+        in case the search is created after the ad
+        and initially with public set to True
+        """
+        with mock_signal_receiver(geoad_new_relevant_ad_for_search) as receiver_buyer:
+            with mock_signal_receiver(geoad_new_interested_user) as receiver_vendor:
+                ad = TestAdFactory.create(brand="myfunkybrand")
+                adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+                                                      content_type=ContentType.objects.get_for_model(TestAd),
+                                                      public=True)
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 1)
+                self.assertEquals(receiver_vendor.call_count, 1)
+                adsearch.delete()
+                ad.delete()
+
+    def test_ad_adsearch_and_ads_signals_4(self):
+        """
+        Test if signals are well sent to the buyer and the seller
+        in case the search is created after the ad
+        and initially with public set to False and in a second time set to True
+        """
+        with mock_signal_receiver(geoad_new_relevant_ad_for_search) as receiver_buyer:
+            with mock_signal_receiver(geoad_new_interested_user) as receiver_vendor:
+                ad = TestAdFactory.create(brand="myfunkybrand")
+                adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+                                                      content_type=ContentType.objects.get_for_model(TestAd),
+                                                      public=False)
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 1)
+                adsearch.public = True
+                adsearch.save()
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_vendor.call_count, 1)
+                adsearch.delete()
+                ad.delete()
+
+    def test_ad_adsearch_and_ads_signals_5(self):
+        """
+        Mixed case where we change the different fields of ad and addsearch
+        """
+        with mock_signal_receiver(geoad_new_relevant_ad_for_search) as receiver_buyer:
+            with mock_signal_receiver(geoad_new_interested_user) as receiver_vendor:
+                ad = TestAdFactory.create(brand="myfunkybrand")
+                adsearch = TestAdSearchFactory.create(search="brand=mytoofunkybrand",
+                                                      content_type=ContentType.objects.get_for_model(TestAd),
+                                                      public=True)
+
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 0)
+                self.assertEquals(receiver_vendor.call_count, 0)
+                # modify Ad to correspond => signal to buyer
+                ad.brand = "mytoofunkybrand"
+                ad.save()
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 1)
+                self.assertEquals(receiver_vendor.call_count, 1)
+                # resave Ad to be sure, signal isn't send one more time
+                ad.brand = "mytoofunkybrand"
+                ad.save()
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 1)
+                self.assertEquals(receiver_vendor.call_count, 1)
+                # modify AdSearch to not correspond
+                adsearch.search = "brand=myfunkybrand"
+                adsearch.save()
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 1)
+                self.assertEquals(receiver_vendor.call_count, 1)
+                # modify AdSearch to corresond => mail to both
+                ad.brand = "myfunkybrand"
+                ad.save()
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 2)
+                self.assertEquals(receiver_vendor.call_count, 2)
+                # just change the Ad description to be sure signal is not sent another time
+                ad.description = "you must buy it"
+                ad.save()
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 2)
+                self.assertEquals(receiver_vendor.call_count, 2)
+                adsearch.delete()
+                ad.delete()
+
+    def test_remove_ad_from_ad_search(self):
+        with mock_signal_receiver(geoad_new_relevant_ad_for_search) as receiver_buyer:
+            with mock_signal_receiver(geoad_new_interested_user) as receiver_vendor:
+                adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+                                                      content_type=ContentType.objects.get_for_model(TestAd),
+                                                      public=True)
+                ad = TestAdFactory.create(brand="myfunkybrand")
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 1)
+                self.assertEquals(receiver_vendor.call_count, 1)
+                # modify Ad to correspond => signal to buyer
+                ad.brand = "mytoofunkybrand"
+                ad.save()
+                get_worker().work(burst=True)  # this is unused in this test
+                self.assertEquals(receiver_buyer.call_count, 1)
+                self.assertEquals(receiver_vendor.call_count, 1)
+                adsearch.delete()
+                ad.delete()
+
+    def test_ad_search_result_remove(self):
+        ad = TestAdFactory.create(brand="myfunkybrand")
         adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
-            content_type=ContentType.objects.get_for_model(TestAd), public=True)
-        ad = TestAdFactory.create(brand="myfunkybrand")
-        self.assertEquals(len(mail.outbox), 2)
-        adsearch.delete()
-        ad.delete()
-
-    def test_ad_adsearch_and_ads_notifications_2(self):
-        # ad AdSearch, public False, then Ad corresponding => mail to buyer
-        adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
-            content_type=ContentType.objects.get_for_model(TestAd), public=False)
-        ad = TestAdFactory.create(brand="myfunkybrand")
-        self.assertEquals(len(mail.outbox), 1)
-        # the AdSearch became public, then mail to vendor
-        adsearch.public = True
-        adsearch.save()
-        self.assertEquals(len(mail.outbox), 2)
-        adsearch.delete()
-        ad.delete()
-
-    def test_ad_adsearch_and_ads_notifications_3(self):
-        # ad Ad, then AdSearch corresponding public True => mail to buyer and vendor
-        ad = TestAdFactory.create(brand="myfunkybrand")
-        adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
-            content_type=ContentType.objects.get_for_model(TestAd), public=True)
-        self.assertEquals(len(mail.outbox), 2)
-        adsearch.delete()
-        ad.delete()
-
-    def test_ad_adsearch_and_ads_notifications_4(self):
-        # ad Ad, then AdSearch corresponding public False => mail to buyer
-        ad = TestAdFactory.create(brand="myfunkybrand")
-        adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
-            content_type=ContentType.objects.get_for_model(TestAd), public=False)
-        self.assertEquals(len(mail.outbox), 1)
-        # the AdSearch become public, then mail to the vendor
-        adsearch.public = True
-        adsearch.save()
-        self.assertEquals(len(mail.outbox), 2)
-
-    def test_ad_adsearch_and_ads_notifications_5(self):
-        # ad Ad, then AdSearch public, not corresponding => no mail
-        ad = TestAdFactory.create(brand="myfunkybrand")
-        adsearch = TestAdSearchFactory.create(search="brand=mytoofunkybrand",
-            content_type=ContentType.objects.get_for_model(TestAd), public=True)
-        self.assertEquals(len(mail.outbox), 0)
-        # modify Ad to correspond => mail to both
+                                              content_type=ContentType.objects.get_for_model(TestAd),
+                                              public=True)
         ad.brand = "mytoofunkybrand"
         ad.save()
-        self.assertEquals(len(mail.outbox), 2)
-        # resave Ad to be sure, mail isn't send one more time
-        ad.brand = "mytoofunkybrand"
-        ad.save()
-        self.assertEquals(len(mail.outbox), 2)
-        # modify AdSearch to not correspond
-        adsearch.search = "brand=myfunkybrand"
-        adsearch.save()
-        self.assertEquals(len(mail.outbox), 2)
-        # modify AdSearch to corresond => mail to both
-        ad.brand = "myfunkybrand"
-        ad.save()
-        self.assertEquals(len(mail.outbox), 4)
+        ad.delete()
+        adsearch.delete()
 
 
 class GeoadsTemplateTagsTestCase(GeoadsBaseTestCase):

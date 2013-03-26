@@ -12,3 +12,8 @@ pygeocoder==1.1.4
 wsgiref==0.1.2
 requests
 factory_boy  # used for test purpose only
+rq
+django-rq
+django-rq-dashboard
+mock-django  # for testing purposes
+-e git://github.com/callowayproject/django-dirtyfields.git

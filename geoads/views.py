@@ -2,8 +2,8 @@
 """
 Views for ads application
 
-This module provides CRUD absraction functions.
-
+This module provides class-based views Create/Read/Update/Delete absractions
+to work with Ad models.
 """
 import logging
 from pygeocoder import Geocoder
@@ -30,6 +30,7 @@ from geoads.models import Ad, AdSearch, AdPicture, AdSearchResult
 from geoads.forms import (AdContactForm, AdPictureForm, AdSearchForm,
     AdSearchUpdateForm, AdSearchResultContactForm, BaseAdForm)
 from geoads.utils import geocode
+from geoads.signals import geoad_vendor_message, geoad_user_message
 
 logger = logging.getLogger(__name__)
 
@@ -177,8 +178,7 @@ class AdSearchView(ListView):
         return self.render_to_response(context)
 
     def get_queryset(self):
-        #filter = self.model.filterset(self._q)
-        filter = self.model.objects.filterset(self._q)
+        filter = self.model.filterset()(self._q)
         return filter
 
     def get_context_data(self, initial_ads=None, ad_search_form=None, **kwargs):
@@ -291,12 +291,13 @@ class AdDetailView(DetailView):
             instance.content_object = self.get_object()
             instance.user = request.user
             instance.save()
-            send_mail(_(u'[%s] Demande d\'information concernant votre annonce') \
-            % (Site.objects.get_current().name),
-               instance.message,
-               instance.user.email,
-               [self.get_object().user.email],
-               fail_silently=False)
+            geoad_user_message.send(sender=Ad, ad=self.get_object(), user=instance.user, message=instance.message)
+            #send_mail(_(u'[%s] Demande d\'information concernant votre annonce') \
+            #% (Site.objects.get_current().name),
+            #   instance.message,
+            #   instance.user.email,
+            #   [self.get_object().user.email],
+            #   fail_silently=False)
             sent_mail = True
             messages.add_message(request, messages.INFO,
                 _(u'Votre message a bien été envoyé.'), fail_silently=True)
@@ -326,7 +327,7 @@ class AdCreateView(LoginRequiredMixin, CreateView):
             self.object = form.save(commit=False)
             self.object.user = self.request.user
             user_entered_address = form.cleaned_data['user_entered_address']
-            if settings.BYPASS_GEOCODE == True:
+            if settings.BYPASS_GEOCODE is True:
                 self.object.address = u"[{u'geometry': {u'location': {u'lat': 48.868356, u'lng': 2.330378}, u'viewport': {u'northeast': {u'lat': 48.8697049802915, u'lng': 2.331726980291502}, u'southwest': {u'lat': 48.8670070197085, u'lng': 2.329029019708498}}, u'location_type': u'ROOFTOP'}, u'address_components': [{u'long_name': u'1', u'types': [u'street_number'], u'short_name': u'1'}, {u'long_name': u'Rue de la Paix', u'types': [u'route'], u'short_name': u'Rue de la Paix'}, {u'long_name': u'2nd arrondissement of Paris', u'types': [u'sublocality', u'political'], u'short_name': u'2nd arrondissement of Paris'}, {u'long_name': u'Paris', u'types': [u'locality', u'political'], u'short_name': u'Paris'}, {u'long_name': u'Paris', u'types': [u'administrative_area_level_2', u'political'], u'short_name': u'75'}, {u'long_name': u'\xcele-de-France', u'types': [u'administrative_area_level_1', u'political'], u'short_name': u'IdF'}, {u'long_name': u'France', u'types': [u'country', u'political'], u'short_name': u'FR'}, {u'long_name': u'75002', u'types': [u'postal_code'], u'short_name': u'75002'}], u'formatted_address': u'1 Rue de la Paix, 75002 Paris, France', u'types': [u'street_address']}]"
                 self.object.location = 'POINT (2.3303780000000001 48.8683559999999986)'
             else:
@@ -350,12 +351,12 @@ class AdCreateView(LoginRequiredMixin, CreateView):
         context = super(AdCreateView, self).get_context_data(**kwargs)
         if self.request.POST:
             PictureFormset = generic_inlineformset_factory(AdPicture, form=self.ad_picture_form,
-                                                   extra=4, max_num=4)
+                                                           extra=4, max_num=4)
             context['picture_formset'] = PictureFormset(self.request.POST,
                                                         self.request.FILES)
         else:
             PictureFormset = generic_inlineformset_factory(AdPicture, form=self.ad_picture_form,
-                                                   extra=4, max_num=4)
+                                                           extra=4, max_num=4)
             context['picture_formset'] = PictureFormset()
         return context
 
@@ -442,8 +443,7 @@ class AdDeleteView(LoginRequiredMixin, DeleteView):
 
     def get_success_url(self):
         """ Redirect to user account page"""
-        messages.add_message(self.request, messages.INFO,
-            _(u'Votre annonce a bien été supprimée.'), fail_silently=True)
+        messages.add_message(self.request, messages.INFO, _(u'Votre annonce a bien été supprimée.'), fail_silently=True)
         return account_url(self.request)
 
 
@@ -497,8 +497,10 @@ class AdPotentialBuyerContactView(LoginRequiredMixin, FormView):
         ad_search_result = AdSearchResult.objects.get(id=self.adsearchresult_id)
         ad_search_result.contacted = True
         ad_search_result.save()
-        msg_from = ad_search_result.content_object.user.email
-        msg_to = ad_search_result.ad_search.user.email
-        send_mail('Contact', self.message, msg_from,
-            [msg_to, ], fail_silently=False)
+        #msg_from = ad_search_result.content_object.user.email
+        #msg_to = ad_search_result.ad_search.user.email
+        geoad_vendor_message.send(sender=Ad, ad=ad_search_result.content_object,
+                                  user=ad_search_result.ad_search.user, message=self.message)
+        #send_mail('Contact', self.message, msg_from,
+        #    [msg_to, ], fail_silently=False)
         return reverse('contact_buyers', kwargs={'pk': ad_search_result.object_pk})

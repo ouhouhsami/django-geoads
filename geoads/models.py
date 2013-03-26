@@ -10,7 +10,10 @@ from django.contrib.auth.models import User
 
 from autoslug import AutoSlugField
 from jsonfield.fields import JSONField
-from utils import ad_search_result_vendor_notification
+from dirtyfields import DirtyFieldsMixin
+
+
+from geoads.signals import geoad_new_interested_user
 
 
 logger = logging.getLogger(__name__)
@@ -69,12 +72,12 @@ class AdSearch(models.Model):
         if self.id is not None:
             previous_public = AdSearch.objects.get(id=self.id).public
         super(AdSearch, self).save(*args, **kwargs)  # Call the "real" save() method.
-        if previous_public != self.public and self.public == True:
+        if previous_public != self.public and self.public is True:
             # send mail to vendors
             ad_search_results = AdSearchResult.objects.filter(ad_search=self)
             for instance in ad_search_results:
                 if instance.create_date < self.create_date or previous_public is False:
-                    ad_search_result_vendor_notification(instance.content_object)
+                    geoad_new_interested_user.send(sender=Ad, ad=instance.content_object, interested_user=self.user)
 
 
 class AdSearchResult(models.Model):
@@ -99,28 +102,23 @@ class AdSearchResult(models.Model):
 
 class AdManager(models.GeoManager):
     """
-    Ad Manager, used to get filterset linked to Ad model
-    so we get it by calling Ad.objects.filterset
+    Ad Manager
+    anticipation of use for it
+    no more used to get filterset linked to Ad model
     """
-    filterset = None
-
-    def filterset(self):
-        return self.filterset
-
-    def set_filterset(self, filterset):
-        self.filterset = filterset
+    pass
 
 
-class Ad(models.Model):
+class Ad(DirtyFieldsMixin, models.Model):
     """
     Ad abstract base model
     """
     user = models.ForeignKey(User)
     slug = AutoSlugField(populate_from='get_full_description',
-        always_update=True, unique=True)
+                         always_update=True, unique=True)
     description = models.TextField("", null=True, blank=True)
     user_entered_address = models.CharField("Adresse", max_length=2550,
-            help_text="Adresse complète, ex. : <i>5 rue de Verneuil Paris</i>")
+                                            help_text="Adresse complète, ex. : <i>5 rue de Verneuil Paris</i>")
     address = JSONField(null=True, blank=True)
     location = models.PointField(srid=900913)
     pictures = generic.GenericRelation(AdPicture)
@@ -129,12 +127,26 @@ class Ad(models.Model):
     delete_date = models.DateTimeField(null=True, blank=True)
 
     ad_search_results = generic.GenericRelation(AdSearchResult,
-        object_id_field="object_pk", content_type_field="content_type")
+                                                object_id_field="object_pk",
+                                                content_type_field="content_type")
 
-    #objects = models.GeoManager()
     objects = AdManager()
 
-    #filterset = None  # static var that hold the related filterset
+    default_filterset = 'geoads.filtersets.AdFilterSet'
+
+    @classmethod
+    def filterset(cls):
+        """
+        class method to get filterset for model
+        TODO: raise configuration error if default_filterset not set on model
+        """
+        logger.info('try to reach get_filterset !')
+        filterset_class = cls.default_filterset.split('.')[-1]
+        module = ".".join(cls.default_filterset.split('.')[0:-1])
+        mod = __import__(module, fromlist=[filterset_class])
+        klass = getattr(mod, filterset_class)
+        logger.info('%s' % klass)
+        return klass
 
     def get_full_description(self, instance=None):
         raise NotImplementedError

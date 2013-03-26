@@ -37,5 +37,5 @@ setup(
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Topic :: Utilities'],
-    test_suite='example_project.runtests.runtests',
+    test_suite='tests.runtests.runtests',
 )

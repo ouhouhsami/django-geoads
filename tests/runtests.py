@@ -1,7 +1,7 @@
 # This file mainly exists to allow python setup.py test to work.
 import os
 import sys
-os.environ['DJANGO_SETTINGS_MODULE'] = 'example_project.settings'
+os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.settings'
 test_dir = os.path.dirname(os.path.abspath(__file__))
 lib_dir = os.path.dirname(test_dir)
 

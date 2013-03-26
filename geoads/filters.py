@@ -1,7 +1,6 @@
 #-*- coding: utf-8 -*-
 """
 Ads specific filters for search
-
 """
 from django.contrib.gis.geos import fromstr
 from django_filters.filters import Filter

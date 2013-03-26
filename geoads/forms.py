@@ -1,10 +1,12 @@
 #-*- coding: utf-8 -*-
+"""
+Ads app forms module
+
+This module provides default forms to work with Ad, AdContact, AdSearch forms.
+"""
 from django import forms
 from django.forms import ModelForm
-from django.contrib.gis.geos import Point
 from django.conf import settings
-
-from pygeocoder import Geocoder, GeocoderError
 
 from geoads.models import AdPicture, AdContact, AdSearch, AdSearchResult, Ad
 from geoads.widgets import ImageWidget

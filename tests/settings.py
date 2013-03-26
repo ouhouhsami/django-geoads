@@ -7,6 +7,13 @@ TEMPLATE_DEBUG = DEBUG
 
 BYPASS_GEOCODE = True
 
+GEOADS_ASYNC = False
+
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+EMAIL_FILE_PATH = 'tmp/email-messages/'
+
 
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 
@@ -18,7 +25,7 @@ TEST_RUNNER = 'django_coverage.coverage_runner.CoverageRunner'
 
 # I exclude admin.py files from my coverage
 # these files does'nt set anything spectial
-COVERAGE_MODULE_EXCLUDES = ['tests$', 'settings$', 'urls$', 'locale$',
+COVERAGE_MODULE_EXCLUDES = ['tests$','factories', 'settings$', 'urls$', 'locale$',
                                     'common.views.test', '__init__', 'django',
                                     'migrations', 'admin']
 
@@ -32,6 +39,8 @@ DATABASES = {
     }
 }
 
+
+GEOCODE = 'nominatim'
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -101,7 +110,7 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-ROOT_URLCONF = 'example_project.urls'
+ROOT_URLCONF = 'tests.urls'
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
@@ -121,6 +130,7 @@ INSTALLED_APPS = (
     'django.contrib.flatpages',
     'django.contrib.sitemaps',
     'django_filters',
+    'django_rq',
     'customads',
     'geoads',
 
@@ -166,10 +176,10 @@ LOGGING = {
             'propagate': True,
             'level': 'INFO',
         },
-        'geoads': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
+        #'geoads': {
+        #    'handlers': ['console'],
+        #    'level': 'INFO',
+        #},
     }
 }
 
@@ -180,3 +190,17 @@ SKIP_SOUTH_TESTS = True
 ADS_PROFILE_URL = '/'
 # for testing purposes, profile signup page = home/search page
 ADS_PROFILE_SIGNUP = '/'
+
+
+# QUEUE
+
+#RQ_EAGER = True
+# RQ = {'eager': True}
+
+RQ_QUEUES = {
+    'default': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+    },
+}
