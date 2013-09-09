@@ -21,12 +21,16 @@ ADMINS = ('admin@geoads.com',)
 
 MANAGERS = ADMINS
 
+DJANGO_MODERATION_MODERATORS = (
+    'test@example.com',
+)
+
+
 TEST_RUNNER = 'django_coverage.coverage_runner.CoverageRunner'
 
 # I exclude admin.py files from my coverage
 # these files does'nt set anything spectial
-COVERAGE_MODULE_EXCLUDES = ['tests$','factories', 'settings$', 'urls$', 'locale$',
-                                    'common.views.test', '__init__', 'django',
+COVERAGE_MODULE_EXCLUDES = ['tests$','factories', 'settings$', 'urls$', 'locale$', '__init__', 'django',
                                     'migrations', 'admin']
 
 COVERAGE_REPORT_HTML_OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'coverage_report')
@@ -35,7 +39,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'geoads_db',
-        'USER': 'postgres'
+        'USER': 'postgres', 
     }
 }
 
@@ -105,8 +109,6 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 )
 
 AUTHENTICATION_BACKENDS = (
-    #'userena.backends.UserenaAuthenticationBackend',
-    #'guardian.backends.ObjectPermissionBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
 
@@ -131,60 +133,17 @@ INSTALLED_APPS = (
     'django.contrib.sitemaps',
     'django_filters',
     'django_rq',
+    'moderation',
     'customads',
     'geoads',
-
+    'geoads.contrib.moderation', 
 )
 
 # specific test setting for coverage information
 
-#TEST_RUNNER = 'django_coverage.coverage_runner.CoverageRunner'
-#COVERAGE_REPORT_HTML_OUTPUT_DIR = os.path.join(SITE_ROOT, 'coverage_report')
 
-# A sample logging configuration. The only tangible logging
-# performed by this configuration is to send an email to
-# the site admins on every HTTP 500 error.
-# See http://docs.djangoproject.com/en/dev/topics/logging for
-# more details on how to customize your logging configuration.
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': True,
-    'formatters': {
-        'verbose': {
-            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
-        },
-        'simple': {
-            'format': '%(levelname)s %(message)s'
-        },
-    },
-    'filters': {
-    },
-    'handlers': {
-        'null': {
-            'level': 'DEBUG',
-            'class': 'django.utils.log.NullHandler',
-        },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple'
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['null'],
-            'propagate': True,
-            'level': 'INFO',
-        },
-        #'geoads': {
-        #    'handlers': ['console'],
-        #    'level': 'INFO',
-        #},
-    }
-}
-
-SOUTH_TESTS_MIGRATE = False
-SKIP_SOUTH_TESTS = True
+#SOUTH_TESTS_MIGRATE = False
+#SKIP_SOUTH_TESTS = True
 
 # for testing purposes, profile page = home/search page
 ADS_PROFILE_URL = '/'
@@ -194,9 +153,6 @@ ADS_PROFILE_SIGNUP = '/'
 
 # QUEUE
 
-#RQ_EAGER = True
-# RQ = {'eager': True}
-
 RQ_QUEUES = {
     'default': {
         'HOST': 'localhost',
@@ -204,3 +160,8 @@ RQ_QUEUES = {
         'DB': 0,
     },
 }
+
+
+if DEBUG:
+    for queueConfig in RQ_QUEUES.itervalues():
+        queueConfig['ASYNC'] = False

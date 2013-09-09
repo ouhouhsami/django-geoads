@@ -1,0 +1,15 @@
+{% extends "mails/body.html" %}
+
+{% block to %}{{ to }},{% endblock %}
+
+{% block subject %}Vous avez un nouveau message à propos de votre bien<br /><a href="http://{{ site.domain}}{% url "view" ad.slug %}">{{ ad }}</a>{% endblock %}
+
+{% block content %}
+	{{ message|linebreaks }}
+{% endblock %}
+
+{% block subcontent %}
+	Vous pouvez répondre directement à cet email.
+{% endblock %}
+
+{% block from %}<span style="color:{{ secondColor }}">{{ from }}</span>{% endblock %}

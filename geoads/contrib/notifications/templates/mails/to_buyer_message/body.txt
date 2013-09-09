@@ -1,0 +1,13 @@
+{% extends 'mails/body.txt' %}
+{% block to %}{{ to }},{% endblock %}
+{% block subject %}
+Vous avez un nouveau message à propos de votre recherche {{ ad_search }}, de la part du vendeur de cette annonce : 
+{{ ad }} (http://{{ site.domain}}{% url "view" ad.slug %})
+{% endblock %}
+{% block content %}
+{{ message|linebreaks|striptags }}
+{% endblock %}
+{% block from %}
+{{ from }}
+{% endblock %}
+{% block subcontent %}Vous pouvez répondre directement à cet email{% endblock %}

@@ -10,7 +10,6 @@ from django.contrib.auth.models import User
 
 from autoslug import AutoSlugField
 from jsonfield.fields import JSONField
-from dirtyfields import DirtyFieldsMixin
 
 
 from geoads.signals import geoad_new_interested_user
@@ -49,6 +48,17 @@ class AdContact(models.Model):
         db_table = 'ads_adcontact'
 
 
+'''
+class PublicAdSearchManager(models.Manager):
+    """
+    Ad Search Manager
+    """
+    #TODO fix for django1.5 needed get_query_set became get_queryset
+    def get_query_set(self):
+        return super(PublicAdSearchManager, self).get_query_set().filter(public=True)
+'''
+
+
 class AdSearch(models.Model):
     """
     AdSearch base
@@ -61,8 +71,13 @@ class AdSearch(models.Model):
     user = models.ForeignKey(User)
     create_date = models.DateTimeField(auto_now_add=True)
     content_type = models.ForeignKey(ContentType)
-    public = models.BooleanField()
-    description = models.TextField(null=True, blank=True)
+    public = models.BooleanField("Publier cette recherche ?", 
+                                 help_text=u"Une recherche publique permet aux vendeurs ayant un bien correspondant à votre recherche de vous contacter.")
+    description = models.TextField("Message aux vendeurs", null=True, blank=True, 
+                                   help_text=u"Ce message est destiné aux vendeurs ayant un bien correspondant à votre recherche. Il sera publié avec votre annonce de recherche.")
+
+    objects = models.Manager()
+    #publics = PublicAdSearchManager()
 
     class Meta:
         db_table = 'ads_adsearch'
@@ -106,10 +121,11 @@ class AdManager(models.GeoManager):
     anticipation of use for it
     no more used to get filterset linked to Ad model
     """
+    #TODO fix for django1.5 needed get_query_set became get_queryset
     pass
 
 
-class Ad(DirtyFieldsMixin, models.Model):
+class Ad(models.Model):
     """
     Ad abstract base model
     """
@@ -118,7 +134,7 @@ class Ad(DirtyFieldsMixin, models.Model):
                          always_update=True, unique=True)
     description = models.TextField("", null=True, blank=True)
     user_entered_address = models.CharField("Adresse", max_length=2550,
-                                            help_text="Adresse complète, ex. : <i>5 rue de Verneuil Paris</i>")
+                                            help_text=u"Adresse complète, ex. : 5 rue de Verneuil Paris")
     address = JSONField(null=True, blank=True)
     location = models.PointField(srid=900913)
     pictures = generic.GenericRelation(AdPicture)
@@ -140,19 +156,31 @@ class Ad(DirtyFieldsMixin, models.Model):
         class method to get filterset for model
         TODO: raise configuration error if default_filterset not set on model
         """
-        logger.info('try to reach get_filterset !')
         filterset_class = cls.default_filterset.split('.')[-1]
         module = ".".join(cls.default_filterset.split('.')[0:-1])
         mod = __import__(module, fromlist=[filterset_class])
         klass = getattr(mod, filterset_class)
         logger.info('%s' % klass)
         return klass
-
+    
     def get_full_description(self, instance=None):
         raise NotImplementedError
+
+    def _get_public_adsearch(self):
+        #TODO should be just one queryset ! this is ugly
+        ad_search_results_public = []
+        for ad in self.ad_search_results.all():
+            if ad.ad_search.public is True:
+                ad_search_results_public.append(ad.ad_search)
+        return ad_search_results_public
+
+    public_adsearch = property(_get_public_adsearch)
 
     def __unicode__(self):
         return self.slug
 
     class Meta:
         abstract = True
+
+# connect signals
+from .receivers import *

@@ -1,13 +1,8 @@
 #-*- coding: utf-8 -*-
-import logging
 import requests
 
-#from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.gis.geos import Point
-
-
-logger = logging.getLogger(__name__)
 
 
 def geocode(address):

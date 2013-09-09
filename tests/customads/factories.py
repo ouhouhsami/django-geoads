@@ -9,7 +9,7 @@ from django.conf import settings
 
 from geoads.models import Ad, AdSearch
 
-from models import TestAd, TestNumberAd
+from .models import TestAd, TestNumberAd, TestModeratedAd
 
 
 ADDRESSES = ["13 Place d'Aligre, Paris",
@@ -18,7 +18,7 @@ ADDRESSES = ["13 Place d'Aligre, Paris",
     "1 place du Chatelet, Paris", ]
 
 
-class UserFactory(factory.Factory):
+class UserFactory(factory.django.DjangoModelFactory):
     FACTORY_FOR = User
 
     username = factory.Sequence(lambda n: "user %s" % n)
@@ -33,7 +33,7 @@ class UserFactory(factory.Factory):
         )
 
 
-class BaseAdFactory(factory.Factory):
+class BaseAdFactory(factory.django.DjangoModelFactory):
     FACTORY_FOR = Ad
 
     user_entered_address = random.choice(ADDRESSES)
@@ -67,7 +67,13 @@ class TestNumberAdFactory(BaseAdFactory):
     number = factory.Iterator([1, 2, None, 3, 4, None])
 
 
-class TestAdSearchFactory(factory.Factory):
+class TestModeratedAdFactory(BaseAdFactory):
+    FACTORY_FOR = TestModeratedAd
+
+    brand = factory.Sequence(lambda n: 'brand%s' % n)
+
+
+class TestAdSearchFactory(factory.django.DjangoModelFactory):
     FACTORY_FOR = AdSearch
 
     user = factory.SubFactory(UserFactory)

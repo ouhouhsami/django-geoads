@@ -1,0 +1,19 @@
+{% load i18n %}{% autoescape off %}{% load url "from" future %}
+{% blocktrans with user.email as email %}Bonjour {{ email }},{% endblocktrans %}
+
+
+{% trans "Merci de votre inscription sur" %} {{ site }}.
+
+{% trans "Pour activer votre compte d'utilisateur, veuillez cliquer sur le  lien d'activation suivant" %} :
+
+{{ protocol }}://{{ site.domain }}{% url "'userena_activate'" activation_key %}
+
+{% blocktrans %}
+L'activation nous permet de vérifier que vous êtes bien le propriétaire de cette adresse e-mail.
+Pour des raisons de sécurité, ce lien n'est actif que 7 jours. Au-delà, vous devrez renouveler votre inscription sur {% endblocktrans %} {{ site }}
+
+{% trans "Cordialement" %},
+
+{% trans "L'équipe" %} {{ site }}
+
+{% endautoescape %}

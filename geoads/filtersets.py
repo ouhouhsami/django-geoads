@@ -4,7 +4,6 @@ Ads app filtersets module
 
 This module provides default filterset 'AdFilterSet' to work with Ad models.
 """
-#from django.db import models
 from django.contrib.gis.db import models
 
 import django_filters

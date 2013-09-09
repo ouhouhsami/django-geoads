@@ -6,7 +6,7 @@ This module provides class-based views Create/Read/Update/Delete absractions
 to work with Ad models.
 """
 import logging
-from pygeocoder import Geocoder
+#from pygeocoder import Geocoder
 
 from django.conf import settings
 from django.contrib import messages
@@ -14,7 +14,7 @@ from django.contrib.contenttypes.generic import generic_inlineformset_factory
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
-from django.contrib.gis.geos import Point
+#from django.contrib.gis.geos import Point
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.http import QueryDict, Http404, HttpResponseRedirect
@@ -32,6 +32,8 @@ from geoads.forms import (AdContactForm, AdPictureForm, AdSearchForm,
 from geoads.utils import geocode
 from geoads.signals import geoad_vendor_message, geoad_user_message
 
+from geoads.contrib.moderation.models import ModeratedAd
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,21 +43,12 @@ class LoginRequiredMixin(object):
         return super(LoginRequiredMixin, self).dispatch(request, *args, **kwargs)
 
 
-def account_url(request):
-    try:
-        url = settings.ADS_PROFILE_URL % (request.user.username)
-    except:
-        url = settings.ADS_PROFILE_URL
-    return url
-
-
 class AdSearchView(ListView):
     """
     Class based ad search view
 
     GET method for searching: filtering, ordering, and browsing by page results
     POST method for saving a search
-
     """
     model = Ad
     search_id = None
@@ -132,7 +125,7 @@ class AdSearchView(ListView):
     def create_search(self, request, *args, **kwargs):
         # request.method == 'POST' and search_id is None
         # save the search
-        profile_detail_url = account_url(self.request)
+        #profile_detail_url = account_url(self.request)
         # return the results
         self.ad_search_form = AdSearchForm(request.POST)
         if self.ad_search_form.is_valid():
@@ -145,9 +138,7 @@ class AdSearchView(ListView):
             self.ad_search.save()
             self.search_id = self.ad_search.id
             messages.add_message(self.request, messages.INFO,
-                _(u'Votre recherche a bien été sauvegardée ' +
-                u'dans <a href="%s">votre compte</a>.')
-                % (profile_detail_url), fail_silently=True)
+                _(u'Votre recherche a bien été sauvegardée dans votre compte</a>.'), fail_silently=True)
                 # when creation, we need to save related ads to ad_search_results
             #self.update_ad_search_results()
             return HttpResponseRedirect(reverse('search',
@@ -161,7 +152,7 @@ class AdSearchView(ListView):
     @method_decorator(login_required)
     def update_search(self, request, *args, **kwargs):
         # request.method == 'POST' and search_id is not None
-        profile_detail_url = account_url(self.request)
+        profile_detail_url = settings.LOGIN_REDIRECT_URL
         self.ad_search = AdSearch.objects.get(id=self.search_id)
         self.ad_search_form = AdSearchForm(request.POST, instance=self.ad_search)
         if self.ad_search_form.is_valid():
@@ -194,7 +185,6 @@ class AdSearchView(ListView):
     def get_msg(self):
         """
         Search result default message
-
         """
         if len(self.object_list.qs) == 0:
             messages.add_message(self.request, messages.INFO,
@@ -206,7 +196,6 @@ class AdSearchView(ListView):
     def get_no_results_msg(self):
         """
         Message for search that give 0 results
-
         """
         if self.no_results_msg is None:
             return _(u'Aucune annonce ne correspond à votre recherche. ' +\
@@ -216,7 +205,6 @@ class AdSearchView(ListView):
     def get_results_msg(self):
         """
         Message for search that give 1 or more results
-
         """
         #TODO: should have information if search come from a saved search
         if self.results_msg is None:
@@ -233,23 +221,21 @@ class AdSearchUpdateView(LoginRequiredMixin, UpdateView):
     Class based update search view
     Render public or not
     Attach message
-
     """
     model = AdSearch
     form_class = AdSearchUpdateForm
     template_name = "geoads/adsearch_update.html"
-
-    def get_success_url(self):
-        return account_url(self.request)
+    success_url = settings.LOGIN_REDIRECT_URL
 
 
-class AdSearchDeleteView(LoginRequiredMixin, DeleteView):
+class AdSearchDeleteView(DeleteView): #LoginRequiredMixin, 
     """
     Class based delete search ad
-
     """
     model = AdSearch
     template_name = "geoads/adsearch_confirm_delete.html"
+    success_url = settings.LOGIN_REDIRECT_URL
+
 
     def get_object(self, queryset=None):
         """ Ensure object is owned by request.user. """
@@ -258,17 +244,17 @@ class AdSearchDeleteView(LoginRequiredMixin, DeleteView):
             raise Http404
         return obj
 
-    def get_success_url(self):
-        """ Redirect to user account page"""
-        messages.add_message(self.request, messages.INFO,
-            _(u'Votre recherche a bien été supprimée.'), fail_silently=True)
-        return account_url(self.request)
+    #def get_success_url(self):
+    #    """ Redirect to user account page """
+    #    messages.add_message(self.request, messages.INFO,
+    #        _(u'Votre recherche a bien été supprimée.'), fail_silently=True)
+    #    #return account_url(self.request)
+    #    return HttpResponseRedirect(reverse('search'))
 
 
 class AdDetailView(DetailView):
     """
     Class based detail ad
-
     """
     model = Ad  # changed in urls
     context_object_name = 'ad'
@@ -313,7 +299,6 @@ class AdDetailView(DetailView):
 class AdCreateView(LoginRequiredMixin, CreateView):
     """
     Class based create ad
-
     """
     model = Ad  # overriden in specific project urls
     template_name = 'geoads/edit.html'
@@ -335,10 +320,14 @@ class AdCreateView(LoginRequiredMixin, CreateView):
                 self.object.address = geo_info['address']
                 self.object.location = geo_info['location']
             self.object.save()
+            # HACK: need to set changed_by by hand !
+            if 'geoads.contrib.moderation' in settings.INSTALLED_APPS:
+                if ModeratedAd in self.model.__bases__:
+                    self.object.moderated_object.changed_by = self.request.user
+                    self.object.moderated_object.save()
             picture_formset.instance = self.object
             picture_formset.save()
             return redirect('complete', permanent=True)
-        #TODO: if formset not valid
 
     def form_invalid(self, form):
         send_mail(_(u"[%s] %s invalid form while creating an ad") %
@@ -364,7 +353,6 @@ class AdCreateView(LoginRequiredMixin, CreateView):
 class AdUpdateView(LoginRequiredMixin, UpdateView):
     """
     Class base update ad
-
     """
     model = Ad  # overriden in specific project urls
     template_name = 'geoads/edit.html'
@@ -391,20 +379,14 @@ class AdUpdateView(LoginRequiredMixin, UpdateView):
             picture_formset.instance = self.object
             picture_formset.save()
             return redirect('complete', permanent=True)
-        #TODO: if formset not valid
 
-    #unused
-    #def form_invalid(self, form):
-    #    print 'KLKLKLKLK'
-    #    return self.render_to_response(self.get_context_data(form=form))
 
     def get_object(self, queryset=None):
         """ Hook to ensure object is owned by request.user. """
         obj = self.model.objects.get(id=self.kwargs['pk'])
         if not obj.user == self.request.user:
             raise Http404
-        # TODO: ugly hack don't understand, if not line below, value is converted
-        obj.location = str(obj.location)
+
         return obj
 
     def get_context_data(self, **kwargs):
@@ -429,7 +411,6 @@ class CompleteView(LoginRequiredMixin, TemplateView):
 class AdDeleteView(LoginRequiredMixin, DeleteView):
     """
     Class based delete ad
-
     """
     model = Ad  # "normally" overrided in specific project urls
     template_name = "geoads/ad_confirm_delete.html"
@@ -444,13 +425,12 @@ class AdDeleteView(LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         """ Redirect to user account page"""
         messages.add_message(self.request, messages.INFO, _(u'Votre annonce a bien été supprimée.'), fail_silently=True)
-        return account_url(self.request)
+        return settings.LOGIN_REDIRECT_URL
 
 
 class AdPotentialBuyersView(LoginRequiredMixin, ListView):
     """
     Class based view for listing potential buyers of an ad
-
     """
     model = Ad
     search_model = AdSearchResult
@@ -469,7 +449,9 @@ class AdPotentialBuyersView(LoginRequiredMixin, ListView):
 
         queryset = self.search_model.objects.filter(object_pk=self.pk)\
             .filter(content_type=content_type).filter(ad_search__public=True)
-        for obj in queryset:
+        queryset.contacted = queryset.filter(contacted=True)
+        queryset.not_contacted = queryset.exclude(contacted=True)
+        for obj in queryset.not_contacted:
             obj.form = AdSearchResultContactForm(instance=obj)
             obj.form_action = reverse('contact_buyer', kwargs={'adsearchresult_id': obj.id})
         return queryset
@@ -484,23 +466,25 @@ class AdPotentialBuyersView(LoginRequiredMixin, ListView):
 class AdPotentialBuyerContactView(LoginRequiredMixin, FormView):
     """
     Potential buyer contact view for an Ad
-
     """
+    model_class = AdSearchResult
     form_class = AdSearchResultContactForm
+    template_name = ""  # unused
 
     def form_valid(self, form):
         self.message = form.cleaned_data['message']
         return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
-        self.adsearchresult_id = self.kwargs['adsearchresult_id']
-        ad_search_result = AdSearchResult.objects.get(id=self.adsearchresult_id)
+        ad_search_result_id = self.kwargs['adsearchresult_id']
+        # Below, tricky 'hack', depend on the context, 
+        # ad_search_result_id is AdSearchResult instance or just an id
+        if isinstance(ad_search_result_id, self.model_class):
+            ad_search_result = ad_search_result_id
+        else:
+            ad_search_result = self.model_class.objects.get(id=ad_search_result_id)
         ad_search_result.contacted = True
         ad_search_result.save()
-        #msg_from = ad_search_result.content_object.user.email
-        #msg_to = ad_search_result.ad_search.user.email
-        geoad_vendor_message.send(sender=Ad, ad=ad_search_result.content_object,
+        geoad_vendor_message.send(sender=Ad, ad=ad_search_result.content_object, ad_search=ad_search_result.ad_search,
                                   user=ad_search_result.ad_search.user, message=self.message)
-        #send_mail('Contact', self.message, msg_from,
-        #    [msg_to, ], fail_silently=False)
         return reverse('contact_buyers', kwargs={'pk': ad_search_result.object_pk})

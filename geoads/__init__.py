@@ -1,4 +1,6 @@
 #-*- coding: utf-8 -*-
-__version__ = '0.0.2'
+VERSION = (0, 0, 2, 'alpha', 0)
 
-VERSION = __version__
+def get_version():
+    from django.utils.version import get_version
+    return get_version(VERSION)

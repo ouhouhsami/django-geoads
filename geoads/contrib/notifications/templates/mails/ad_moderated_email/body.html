@@ -1,0 +1,19 @@
+{% extends "mails/body.html" %}
+
+{% block to %}{{ to }}{% endblock %}
+
+{% block content %}
+{% if status == 1 %}
+Votre annonce : <b>{{ ad }}</b> est acceptée.
+{% else %}
+Votre annonce : <b>{{ ad }}</b> est rejetée pour la raison suivante : <i>{{ ad.moderated_object.moderation_reason }}</i>. 
+{% endif %}
+{% endblock %}
+
+{% block subcontent %}
+{% if status == 1 %}
+Vous pouvez la consulter en ligne : <a href="{{ site_url }}{{ ad.get_absolute_url }}">{{ site_url }}{{ ad.get_absolute_url }}</a>
+{% else %}
+Vous pouvez la modifier ici : <a href="{{ site_url }}{% url "edit" ad.id %}">{{ site_url }}{% url "edit" ad.id %}</a>, et la resoumettre à modération.
+{% endif %}
+{% endblock %}

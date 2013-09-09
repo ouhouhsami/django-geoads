@@ -1,0 +1,11 @@
+<body>
+	<div>{% block to %}{{ user.email }},{% endblock %} {% block subject %}{{ subject }}{% endblock %}</div>
+	<hr>
+	<div>{% block content %}{{ content }}{% endblock %}</div>
+	<hr>
+	<div>{% block from %}{{ from }}{% endblock %}</div>
+	<hr>
+	<div>{% block subcontent %}{% endblock %}</div>
+	<hr>
+	<div>{{ site_name }}</div>
+</body>

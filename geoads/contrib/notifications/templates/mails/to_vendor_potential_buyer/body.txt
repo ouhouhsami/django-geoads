@@ -1,0 +1,8 @@
+{% extends 'mails/body.txt' %}
+{% block to %}{{ to }},{% endblock %}
+{% block content %}
+Une personne a enregistré une recherche qui correspond à votre bien : {{ ad }} (http://{{ site.domain}}{% url "view" ad.slug %})
+{% endblock %}
+{% block from %}
+{{ from }}
+{% endblock %}

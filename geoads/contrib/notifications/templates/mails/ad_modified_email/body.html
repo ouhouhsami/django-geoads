@@ -1,0 +1,11 @@
+{% extends "mails/body.html" %}
+
+{% block to %}{{ to }}{% endblock %}
+
+{% block content %}
+	Votre annonce <b>{{ ad }}</b> est en cours de modération.
+{% endblock %}
+
+{% block subcontent %}
+	Vous recevrez un email lorsqu'elle sera mise en ligne sur le site.
+{% endblock %}

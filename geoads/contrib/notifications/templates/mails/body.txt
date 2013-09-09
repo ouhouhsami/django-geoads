@@ -1,0 +1,9 @@
+{% block to %}{{ user.email }},{% endblock %}
+{% block subject %}{{ subject }}{% endblock %}
+------------------------------------
+{% block content %}{{ content }}{% endblock %}
+{% block from %}{{ from }}{% endblock %}
+------------------------------------
+{% block subcontent %}{% endblock %}
+------------------------------------
+{{ site.name }}

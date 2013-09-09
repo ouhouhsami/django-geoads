@@ -1,11 +1,12 @@
 # coding=utf-8
 """
 GeoAd test module
-"""
-from django_rq import get_worker
 
+All test are done synchronously in tests (as python-rq is allready tested)
+"""
 from django.utils import unittest
 from django.test.client import RequestFactory
+from django.test.utils import override_settings
 from django.http import Http404
 from django.contrib.contenttypes.models import ContentType
 
@@ -15,25 +16,28 @@ from geoads import views
 from geoads.filtersets import AdFilterSet
 from geoads.models import AdSearch
 from geoads.filters import BooleanForNumberFilter
-from geoads.templatetags.ads_tag import priceformat
 from geoads.models import Ad
 from geoads.utils import geocode
 
-from customads.models import TestAd, TestNumberAd
+from customads.models import TestAd, TestNumberAd, TestModeratedAd
 from customads.forms import TestAdForm
-from customads.factories import UserFactory, TestAdFactory, TestNumberAdFactory, TestAdSearchFactory
+from customads.factories import UserFactory, TestAdFactory, TestNumberAdFactory, TestAdSearchFactory, TestModeratedAdFactory
 from customads.filtersets import TestAdFilterSet
 
-from geoads.signals import *
+from geoads.signals import (geoad_new_interested_user, geoad_new_relevant_ad_for_search,
+                            geoad_user_message, geoad_vendor_message, geoad_post_save_ended)
 
 
 class GeoadsBaseTestCase(unittest.TestCase):
 
     def setUp(self):
+        #from django.db import connection
+        #connection._rollback()
         # set up request factory
         self.factory = RequestFactory()
         TestAd.objects.all().delete()
         AdSearch.objects.all().delete()
+        TestModeratedAd.objects.all().delete()
 
 
 class AdDeleteViewTestCase(GeoadsBaseTestCase):
@@ -84,6 +88,10 @@ class AdUpdateViewTestCase(GeoadsBaseTestCase):
         request.user = test_ad.user
         response = views.AdUpdateView.as_view(model=TestAd, form_class=TestAdForm)(request, pk=test_ad.pk)
         self.assertEqual(response.status_code, 301)
+
+    @override_settings(BYPASS_GEOCODE=False)
+    def test_owner_update_no_bypass(self):
+        self.test_owner_update()
 
     def test_not_owner_update(self):
         test_ad = TestAdFactory.create()
@@ -180,12 +188,12 @@ class AdDetailViewTestCase(GeoadsBaseTestCase):
         request = self.factory.get('/')
         response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
 
-    def test_send_message(self):
-        test_ad = TestAdFactory.create()
-        user = UserFactory.create()
-        request = self.factory.post('/', data={'message': 'Hi buddy !'})
-        request.user = user
-        response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
+    #def test_send_message(self):
+    #    test_ad = TestAdFactory.create()
+    #    user = UserFactory.create()
+    #    request = self.factory.post('/', data={'message': 'Hi buddy !'})
+    #    request.user = user
+    #    response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
 
 
 class AdCreateViewTestCase(GeoadsBaseTestCase):
@@ -198,41 +206,78 @@ class AdCreateViewTestCase(GeoadsBaseTestCase):
         response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
         # valid
         form_data = {'brand': 'my_guitar',
-            'user_entered_address': '5 rue de Vernueil, Paris',
-            'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
-            'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
+                     'user_entered_address': '5 rue de Verneuil, Paris',
+                     'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
+                     'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
         request = self.factory.post('/', data=form_data, files=[])
         user = UserFactory.create()
         request.user = user
         response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
         # invalid
         form_data = {'brand': 'my_guitar',
-            'user_entered_address': 'fkjfkjfkjfkj',
-            'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
-            'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
+                     'user_entered_address': 'fkjfkjfkjfkj',
+                     'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
+                     'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
         request = self.factory.post('/', data=form_data, files=[])
         user = UserFactory.create()
         request.user = user
         response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
         self.assertEqual(response.context_data['form'].errors['user_entered_address'], [u'Indiquer une adresse valide.'])
 
+    @override_settings(BYPASS_GEOCODE=False)
+    def test_create_with_live_geocode(self):
+        self.test_create()
+
     def test_create_same_slug(self):
         user = UserFactory.create()
         form_data = {'brand': 'my_guitar',
-            'user_entered_address': '5 rue de Vernueil, Paris',
-            'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
-            'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
+                     'user_entered_address': '5 rue de Verneuil, Paris',
+                     'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
+                     'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
         request = self.factory.post('/', data=form_data, files=[])
         request.user = user
         response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
 
         form_data = {'brand': 'my_guitar',
-            'user_entered_address': '5 rue de Vernueil, Paris',
-            'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
-            'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
+                     'user_entered_address': '5 rue de Verneuil, Paris',
+                     'geoads-adpicture-content_type-object_id-TOTAL_FORMS': 4,
+                     'geoads-adpicture-content_type-object_id-INITIAL_FORMS': 0}
         request = self.factory.post('/', data=form_data, files=[])
         request.user = user
         response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
+
+
+class AdPotentialBuyersViewTestCase(GeoadsBaseTestCase):
+
+    def test_view(self):
+        # create ad and an adsearch
+        adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+                                              content_type=ContentType.objects.get_for_model(TestAd),
+                                              public=True)
+        ad = TestAdFactory.create(brand="myfunkybrand")
+        request = self.factory.get('/')
+        request.user = ad.user
+        response = views.AdPotentialBuyersView.as_view(model=TestAd)(request, pk=ad.id)
+        self.assertEqual(response.context_data['object'], ad)
+        self.assertEqual(response.context_data['object_list'][0], adsearch.adsearchresult_set.all()[0])
+
+
+class AdPotentialBuyerContactViewTestCase(GeoadsBaseTestCase):
+
+    def test_view(self):
+        # create ad and an adsearch
+        adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+                                              content_type=ContentType.objects.get_for_model(TestAd),
+                                              public=True)
+        ad = TestAdFactory.create(brand="myfunkybrand")
+        request = self.factory.get('/')
+        request.user = ad.user
+        response = views.AdPotentialBuyerContactView.as_view()(request,
+                adsearchresult_id=adsearch.adsearchresult_set.all()[0])
+        request = self.factory.post('/', data={'message': 'I love your ad'}, files=[])
+        request.user = ad.user
+        response = views.AdPotentialBuyerContactView.as_view()(request,
+                adsearchresult_id=adsearch.adsearchresult_set.all()[0])
 
 
 class UtilsFiltersTestCase(GeoadsBaseTestCase):
@@ -278,21 +323,21 @@ class UtilsTestCase(GeoadsBaseTestCase):
         self.assertTrue('location' in geo)
 
 
+
 class GeoadsSignalsTestCase(GeoadsBaseTestCase):
 
     def test_ad_adsearch_and_ads_signals_1(self):
-        '''
+        """
         Test if signals are well sent to the buyer and the seller
         in case the search is created before the ad
         and initially with public set to True
-        '''
+        """
         with mock_signal_receiver(geoad_new_relevant_ad_for_search) as receiver_buyer:
             with mock_signal_receiver(geoad_new_interested_user) as receiver_vendor:
                 adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
                                                       content_type=ContentType.objects.get_for_model(TestAd),
                                                       public=True)
                 ad = TestAdFactory.create(brand="myfunkybrand")
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 1)
                 self.assertEquals(receiver_vendor.call_count, 1)
                 adsearch.delete()
@@ -310,11 +355,9 @@ class GeoadsSignalsTestCase(GeoadsBaseTestCase):
                                                       content_type=ContentType.objects.get_for_model(TestAd),
                                                       public=False)
                 ad = TestAdFactory.create(brand="myfunkybrand")
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 1)
                 adsearch.public = True
                 adsearch.save()
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_vendor.call_count, 1)
                 adsearch.delete()
                 ad.delete()
@@ -331,7 +374,6 @@ class GeoadsSignalsTestCase(GeoadsBaseTestCase):
                 adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
                                                       content_type=ContentType.objects.get_for_model(TestAd),
                                                       public=True)
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 1)
                 self.assertEquals(receiver_vendor.call_count, 1)
                 adsearch.delete()
@@ -349,11 +391,9 @@ class GeoadsSignalsTestCase(GeoadsBaseTestCase):
                 adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
                                                       content_type=ContentType.objects.get_for_model(TestAd),
                                                       public=False)
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 1)
                 adsearch.public = True
                 adsearch.save()
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_vendor.call_count, 1)
                 adsearch.delete()
                 ad.delete()
@@ -369,37 +409,31 @@ class GeoadsSignalsTestCase(GeoadsBaseTestCase):
                                                       content_type=ContentType.objects.get_for_model(TestAd),
                                                       public=True)
 
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 0)
                 self.assertEquals(receiver_vendor.call_count, 0)
                 # modify Ad to correspond => signal to buyer
                 ad.brand = "mytoofunkybrand"
                 ad.save()
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 1)
                 self.assertEquals(receiver_vendor.call_count, 1)
                 # resave Ad to be sure, signal isn't send one more time
                 ad.brand = "mytoofunkybrand"
                 ad.save()
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 1)
                 self.assertEquals(receiver_vendor.call_count, 1)
                 # modify AdSearch to not correspond
                 adsearch.search = "brand=myfunkybrand"
                 adsearch.save()
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 1)
                 self.assertEquals(receiver_vendor.call_count, 1)
                 # modify AdSearch to corresond => mail to both
                 ad.brand = "myfunkybrand"
                 ad.save()
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 2)
                 self.assertEquals(receiver_vendor.call_count, 2)
                 # just change the Ad description to be sure signal is not sent another time
                 ad.description = "you must buy it"
                 ad.save()
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 2)
                 self.assertEquals(receiver_vendor.call_count, 2)
                 adsearch.delete()
@@ -412,13 +446,11 @@ class GeoadsSignalsTestCase(GeoadsBaseTestCase):
                                                       content_type=ContentType.objects.get_for_model(TestAd),
                                                       public=True)
                 ad = TestAdFactory.create(brand="myfunkybrand")
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 1)
                 self.assertEquals(receiver_vendor.call_count, 1)
                 # modify Ad to correspond => signal to buyer
                 ad.brand = "mytoofunkybrand"
                 ad.save()
-                get_worker().work(burst=True)  # this is unused in this test
                 self.assertEquals(receiver_buyer.call_count, 1)
                 self.assertEquals(receiver_vendor.call_count, 1)
                 adsearch.delete()
@@ -435,7 +467,25 @@ class GeoadsSignalsTestCase(GeoadsBaseTestCase):
         adsearch.delete()
 
 
-class GeoadsTemplateTagsTestCase(GeoadsBaseTestCase):
+class AdModelPropertyTestCase(unittest.TestCase):
 
-    def test_priceformat(self):
-        self.assertEqual(priceformat('3000'), '3 000')
+    def test_ad_model_property(self):
+        ad = TestAdFactory.create(brand="myfunkybrand")
+        adsearch = TestAdSearchFactory.create(search="brand=myfunkybrand",
+                                              content_type=ContentType.objects.get_for_model(TestAd),
+                                              public=True)
+        self.assertEqual(ad.public_adsearch, [adsearch, ])
+        adsearch.public = False
+        adsearch.save()
+        self.assertEqual(ad.public_adsearch, [])
+
+
+class GeoadsModerationTestCase(GeoadsBaseTestCase):
+
+    def test_ad_creation(self):
+        with mock_signal_receiver(geoad_new_relevant_ad_for_search) as receiver_buyer:
+            with mock_signal_receiver(geoad_new_interested_user) as receiver_vendor:
+                ad = TestModeratedAdFactory(brand="myfunkybrand")
+                # here, no signals shoud be sent to interested users
+                # here we should create moderated object
+                ad.moderated_object.approve()

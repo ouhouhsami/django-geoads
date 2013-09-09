@@ -16,3 +16,10 @@ but also search ads, and recording their search.
 
 This app uses also https://github.com/jacobtoye/Leaflet.draw
 
+
+In custom model, need, after model to register via moderated_geoads_register or geoads_register
+
+Test app
+--------
+
+python manage.py test customads geoads

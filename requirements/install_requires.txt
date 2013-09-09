@@ -1,0 +1,14 @@
+Django==1.5.1
+PIL==1.1.7
+South==0.7.4
+django-autoslug==1.7.1
+django_filter==0.6
+psycopg2==2.4
+pygeocoder==1.1.4
+wsgiref==0.1.2
+requests==1.2.3
+rq==0.3.11
+django-rq==0.5.1
+django-mail-factory==0.9
+django-moderation<=0.3.2-1
+django-jsonfield<=0.3-1

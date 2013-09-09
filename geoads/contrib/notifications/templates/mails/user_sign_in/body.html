@@ -1,0 +1,25 @@
+{% extends "mails/body.html" %}
+{% load i18n %}{% load url "from" future %}
+
+
+{% block to %}{{ to }},{% endblock %}
+
+{% block subject %}Validation de votre inscription sur le site{% endblock %}
+
+{% block content %}
+{% autoescape off %}
+<p>
+{% trans "Merci de votre inscription sur" %} {{ site }}.
+</p>
+<p>
+{% trans "Pour activer votre compte d'utilisateur, veuillez cliquer sur le  lien d'activation suivant" %} :
+<a href="{{ protocol }}://{{ site.domain }}{% url "'userena_activate'" activation_key %}">{{ protocol }}://{{ site.domain }}{% url "'userena_activate'" activation_key %}</a>
+{% endautoescape %}
+{% endblock %}
+
+{% block subcontent %}
+		{% blocktrans %}L'activation nous permet de vérifier que vous êtes bien le propriétaire de cette adresse e-mail.
+Pour des raisons de sécurité, ce lien n'est actif que 7 jours. Au-delà, vous devrez renouveler votre inscription sur {% endblocktrans %} {{ site }}
+{% endblock %}
+
+{% block from %}<span style="color:{{ secondColor }}">{{ from }}</span>{% endblock %}

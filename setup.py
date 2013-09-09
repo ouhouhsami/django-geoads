@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 from distutils.core import setup
-from setuptools import setup, find_packages
-import re
-import os
+from setuptools import find_packages
+
 
 with open('README.md') as f:
     readme = f.read()
@@ -10,9 +9,17 @@ with open('README.md') as f:
 with open('LICENSE') as f:
     license = f.read()
 
+with open('requirements/install_requires.txt') as reqs:
+    install_requires = reqs.read().split('\n')
+
+with open('requirements/dependency_links.txt') as reqs:
+    dependency_links = reqs.read().split('\n')
+
+version = __import__('django').get_version()
+
 setup(
     name='django-geoads',
-    version='0.0.2',
+    version=version,
     description='Django app for geolocated ads',
     long_description=readme,
     author='Samuel Goldszmidt',
@@ -22,13 +29,8 @@ setup(
     packages=find_packages(exclude=('docs', )),
     zip_safe=False,
     include_package_data=True,
-    install_requires=[
-        #'Django==1.3',
-        #'psycopg2==2.4.1',  # Python-PostgreSQL Database Adapter
-        # 2.4.1 version for this reasaon:
-        # http://obroll.com/solve-psycopg2-programmingerror-autocommit-in-django-1-3-1-postgresql-run-test/
-        #'django-moderation'
-    ],
+    install_requires=install_requires,
+    dependency_links=dependency_links,
     classifiers=['Development Status :: 2 - Pre-Alpha',
     'Environment :: Web Environment',
     'Framework :: Django',
@@ -36,6 +38,5 @@ setup(
     'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
-    'Topic :: Utilities'],
-    test_suite='tests.runtests.runtests',
+    'Topic :: Utilities']
 )
