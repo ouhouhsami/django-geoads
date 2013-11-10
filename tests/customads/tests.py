@@ -4,7 +4,7 @@ GeoAd test module
 
 All test are done synchronously in tests (as python-rq is allready tested)
 """
-from django.utils import unittest
+from django.test import TransactionTestCase, TestCase
 from django.test.client import RequestFactory
 from django.test.utils import override_settings
 from django.http import Http404
@@ -28,22 +28,16 @@ from geoads.signals import (geoad_new_interested_user, geoad_new_relevant_ad_for
                             geoad_user_message, geoad_vendor_message, geoad_post_save_ended)
 
 
-class GeoadsBaseTestCase(unittest.TestCase):
+class GeoadsBaseTestCase(TransactionTestCase):
 
     def setUp(self):
-        #from django.db import connection
-        #connection._rollback()
-        # set up request factory
         self.factory = RequestFactory()
-        TestAd.objects.all().delete()
-        AdSearch.objects.all().delete()
-        TestModeratedAd.objects.all().delete()
-
-
+        
 class AdDeleteViewTestCase(GeoadsBaseTestCase):
 
     def test_owner_delete(self):
-        # create an ad and test if owner can delete it
+        # Create an ad
+        # Test if owner can delete it
         test_ad = TestAdFactory.create()
         request = self.factory.get('/')
         request.user = test_ad.user
@@ -54,10 +48,11 @@ class AdDeleteViewTestCase(GeoadsBaseTestCase):
         response = views.AdDeleteView.as_view(model=TestAd)(request, pk=test_ad.pk)
         self.assertEqual(response.status_code, 302)
         self.assertRaises(TestAd.DoesNotExist, TestAd.objects.get, id=test_ad.id)
+        self.assertFalse(test_ad in TestAd.objects.all())
 
     def test_not_owner_delete(self):
-        # create a user, and an ad, and test if the user
-        # who is not the ad owner can't delete it
+        # Create a user and an ad
+        # Test if the user who is not the ad owner can't delete it
         test_ad = TestAdFactory.create()
         user = UserFactory.create()
         request = self.factory.get('/')
@@ -68,6 +63,7 @@ class AdDeleteViewTestCase(GeoadsBaseTestCase):
         request.user = user
         view = views.AdDeleteView.as_view(model=TestAd)
         self.assertRaises(Http404, view, request, pk=test_ad.pk)
+        self.assertTrue(test_ad in TestAd.objects.all())
 
 
 class AdUpdateViewTestCase(GeoadsBaseTestCase):
@@ -467,7 +463,7 @@ class GeoadsSignalsTestCase(GeoadsBaseTestCase):
         adsearch.delete()
 
 
-class AdModelPropertyTestCase(unittest.TestCase):
+class AdModelPropertyTestCase(TestCase):
 
     def test_ad_model_property(self):
         ad = TestAdFactory.create(brand="myfunkybrand")
@@ -480,12 +476,34 @@ class AdModelPropertyTestCase(unittest.TestCase):
         self.assertEqual(ad.public_adsearch, [])
 
 
-class GeoadsModerationTestCase(GeoadsBaseTestCase):
+#from geoads.contrib.moderation.moderator import AdModerator
+#from moderation import moderation
+from geoads.contrib.moderation.signals import moderation_in_progress
+        
+#moderation.register(TestModeratedAd, AdModerator)
+
+
+class GeoadsModerationTestCase(TestCase):
 
     def test_ad_creation(self):
-        with mock_signal_receiver(geoad_new_relevant_ad_for_search) as receiver_buyer:
-            with mock_signal_receiver(geoad_new_interested_user) as receiver_vendor:
-                ad = TestModeratedAdFactory(brand="myfunkybrand")
-                # here, no signals shoud be sent to interested users
-                # here we should create moderated object
+        # We test that before and after moderation, correct event is sent
+        # Before moderation, it's moderation_in_progress
+        # After moderation, it's the same case as ad would have been saved: 
+        # so we track geoad_post_save_ended signals
+        with mock_signal_receiver(geoad_post_save_ended) as save_ended:
+            with mock_signal_receiver(moderation_in_progress) as mod_in_progress:
+                # As we use factory, we must build and next save
+                # to be sure that registration is fine.
+                ad = TestModeratedAdFactory.build(brand="myfunkybrand")
+                ad.user.save()
+                # This force also to save user
+                ad.user = ad.user
+                ad.save()
+                ad.moderated_object.changed_by = ad.user
+                ad.moderated_object.save()
+                self.assertEquals(mod_in_progress.call_count, 1)
+                self.assertEquals(save_ended.call_count, 0)
                 ad.moderated_object.approve()
+                self.assertEquals(mod_in_progress.call_count, 1)
+                self.assertEquals(save_ended.call_count, 1)
+

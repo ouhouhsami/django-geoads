@@ -10,9 +10,9 @@ requests==1.2.3
 rq==0.3.11
 django-rq==0.5.1
 django-mail-factory==0.9
-factory_boy==2.1.1
+factory_boy==2.2.1
 mock-django==0.6.5
 coverage==3.5.1
 django-coverage==1.2.2
--e git+http://github.com/dominno/django-moderation.git#egg=django-moderation-0.3.2
+django-moderation==0.3.4
 -e git+http://github.com/JordanReiter/django-jsonfield.git@38e517cf09765d48b5ca2928ada468c70f6cf46e#egg=django-jsonfield-dev

@@ -15,7 +15,7 @@ with open('requirements/install_requires.txt') as reqs:
 with open('requirements/dependency_links.txt') as reqs:
     dependency_links = reqs.read().split('\n')
 
-version = __import__('django').get_version()
+version = __import__('geoads').get_version()
 
 setup(
     name='django-geoads',

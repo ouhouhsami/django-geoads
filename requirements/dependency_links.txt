@@ -1,2 +1,1 @@
-http://github.com/dominno/django-moderation/tarball/master#egg=django-moderation-0.3.2-1
 http://github.com/JordanReiter/django-jsonfield/tarball/38e517cf09765d48b5ca2928ada468c70f6cf46e#egg=django-jsonfield-0.3-1

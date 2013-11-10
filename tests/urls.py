@@ -1,6 +1,7 @@
 from django.conf.urls import patterns, url
 from geoads.views import (AdSearchView, AdDetailView, AdSearchDeleteView,
-    AdCreateView,  AdUpdateView, CompleteView, AdDeleteView, AdPotentialBuyersView, AdPotentialBuyerContactView)
+                          AdCreateView,  AdUpdateView, CompleteView, AdDeleteView, 
+                          AdPotentialBuyersView, AdPotentialBuyerContactView)
 from geoads.models import AdSearchResult
 from tests.customads.models import TestAd
 from tests.customads.forms import TestAdForm

@@ -35,6 +35,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
 class BaseAdFactory(factory.django.DjangoModelFactory):
     FACTORY_FOR = Ad
+    ABSTRACT_FACTORY = True
 
     user_entered_address = random.choice(ADDRESSES)
     user = factory.SubFactory(UserFactory)

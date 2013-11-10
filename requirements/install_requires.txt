@@ -10,5 +10,5 @@ requests==1.2.3
 rq==0.3.11
 django-rq==0.5.1
 django-mail-factory==0.9
-django-moderation<=0.3.2-1
+django-moderation==0.3.4
 django-jsonfield<=0.3-1

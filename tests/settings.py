@@ -43,7 +43,6 @@ DATABASES = {
     }
 }
 
-
 GEOCODE = 'nominatim'
 
 # Local time zone for this installation. Choices can be found here:
