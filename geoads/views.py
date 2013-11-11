@@ -5,16 +5,12 @@ Views for ads application
 This module provides class-based views Create/Read/Update/Delete absractions
 to work with Ad models.
 """
-import logging
-#from pygeocoder import Geocoder
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.contenttypes.generic import generic_inlineformset_factory
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
-#from django.contrib.gis.geos import Point
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.http import QueryDict, Http404, HttpResponseRedirect
@@ -31,10 +27,6 @@ from geoads.forms import (AdContactForm, AdPictureForm, AdSearchForm,
     AdSearchUpdateForm, AdSearchResultContactForm, BaseAdForm)
 from geoads.utils import geocode
 from geoads.signals import geoad_vendor_message, geoad_user_message
-
-from geoads.contrib.moderation.models import ModeratedAd
-
-logger = logging.getLogger(__name__)
 
 
 class LoginRequiredMixin(object):
@@ -72,20 +64,15 @@ class AdSearchView(ListView):
 
         if request.method == 'POST':
             if self.search_id:
-                logger.info('update_search')
                 return self.update_search(request, *args, **kwargs)
             else:
-                logger.info('create_search')
                 return self.create_search(request, *args, **kwargs)
         else:
             if self.search_id:
-                logger.info('read_search')
                 return self.read_search(request, *args, **kwargs)
             elif request.GET != {}:
-                logger.info('filter_search')
                 return self.filter_ads(request, *args, **kwargs)
             else:
-                logger.info('home')
                 return self.home(request, *args, **kwargs)
 
         #return super(AdSearchView, self).dispatch(request, *args, **kwargs)
@@ -129,7 +116,6 @@ class AdSearchView(ListView):
         # return the results
         self.ad_search_form = AdSearchForm(request.POST)
         if self.ad_search_form.is_valid():
-            logger.info('ad search form valid')
             self.ad_search_form.user = request.user
             self.ad_search = self.ad_search_form.save(commit=False)
             self.ad_search.content_type = ContentType.objects.get_for_model(self.model)
@@ -278,12 +264,6 @@ class AdDetailView(DetailView):
             instance.user = request.user
             instance.save()
             geoad_user_message.send(sender=Ad, ad=self.get_object(), user=instance.user, message=instance.message)
-            #send_mail(_(u'[%s] Demande d\'information concernant votre annonce') \
-            #% (Site.objects.get_current().name),
-            #   instance.message,
-            #   instance.user.email,
-            #   [self.get_object().user.email],
-            #   fail_silently=False)
             sent_mail = True
             messages.add_message(request, messages.INFO,
                 _(u'Votre message a bien été envoyé.'), fail_silently=True)
@@ -305,7 +285,6 @@ class AdCreateView(LoginRequiredMixin, CreateView):
     ad_picture_form = AdPictureForm
 
     def form_valid(self, form):
-        logger.info('Form is valid, Ad creation')
         context = self.get_context_data()
         picture_formset = context['picture_formset']
         if picture_formset.is_valid():
@@ -320,11 +299,6 @@ class AdCreateView(LoginRequiredMixin, CreateView):
                 self.object.address = geo_info['address']
                 self.object.location = geo_info['location']
             self.object.save()
-            # HACK: need to set changed_by by hand !
-            if 'geoads.contrib.moderation' in settings.INSTALLED_APPS:
-                if ModeratedAd in self.model.__bases__:
-                    self.object.moderated_object.changed_by = self.request.user
-                    self.object.moderated_object.save()
             picture_formset.instance = self.object
             picture_formset.save()
             return redirect('complete', permanent=True)
@@ -370,9 +344,7 @@ class AdUpdateView(LoginRequiredMixin, UpdateView):
                 self.object.location = 'POINT (2.3303780000000001 48.8683559999999986)'
             else:
                 address = user_entered_address.encode('ascii', 'ignore')
-                logger.info('Update ad, address %s' % address)
                 geo_info = geocode(user_entered_address.encode('ascii', 'ignore'))
-                logger.info('geocode result: %s' % geo_info)
                 self.object.address = geo_info['address']
                 self.object.location = geo_info['location']
             self.object.save()
@@ -478,7 +450,8 @@ class AdPotentialBuyerContactView(LoginRequiredMixin, FormView):
     def get_success_url(self):
         ad_search_result_id = self.kwargs['adsearchresult_id']
         # Below, tricky 'hack', depend on the context, 
-        # ad_search_result_id is AdSearchResult instance or just an id
+        # ad_search_result_id is AdSearchResult instance or just an id ! 
+        # Don't know why.
         if isinstance(ad_search_result_id, self.model_class):
             ad_search_result = ad_search_result_id
         else:

@@ -19,13 +19,14 @@ from geoads.filters import BooleanForNumberFilter
 from geoads.models import Ad
 from geoads.utils import geocode
 
-from customads.models import TestAd, TestNumberAd, TestModeratedAd
+from customads.models import TestAd, TestNumberAd
 from customads.forms import TestAdForm
 from customads.factories import UserFactory, TestAdFactory, TestNumberAdFactory, TestAdSearchFactory, TestModeratedAdFactory
 from customads.filtersets import TestAdFilterSet
 
-from geoads.signals import (geoad_new_interested_user, geoad_new_relevant_ad_for_search,
-                            geoad_user_message, geoad_vendor_message, geoad_post_save_ended)
+from geoads.signals import (geoad_new_interested_user, geoad_new_relevant_ad_for_search, geoad_post_save_ended)
+
+from geoads.contrib.moderation.signals import moderation_in_progress
 
 
 class GeoadsBaseTestCase(TransactionTestCase):
@@ -476,13 +477,6 @@ class AdModelPropertyTestCase(TestCase):
         self.assertEqual(ad.public_adsearch, [])
 
 
-#from geoads.contrib.moderation.moderator import AdModerator
-#from moderation import moderation
-from geoads.contrib.moderation.signals import moderation_in_progress
-        
-#moderation.register(TestModeratedAd, AdModerator)
-
-
 class GeoadsModerationTestCase(TestCase):
 
     def test_ad_creation(self):
@@ -492,15 +486,7 @@ class GeoadsModerationTestCase(TestCase):
         # so we track geoad_post_save_ended signals
         with mock_signal_receiver(geoad_post_save_ended) as save_ended:
             with mock_signal_receiver(moderation_in_progress) as mod_in_progress:
-                # As we use factory, we must build and next save
-                # to be sure that registration is fine.
-                ad = TestModeratedAdFactory.build(brand="myfunkybrand")
-                ad.user.save()
-                # This force also to save user
-                ad.user = ad.user
-                ad.save()
-                ad.moderated_object.changed_by = ad.user
-                ad.moderated_object.save()
+                ad = TestModeratedAdFactory(brand="myfunkybrand")
                 self.assertEquals(mod_in_progress.call_count, 1)
                 self.assertEquals(save_ended.call_count, 0)
                 ad.moderated_object.approve()

@@ -5,7 +5,7 @@ import sys
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
-BYPASS_GEOCODE = True
+BYPASS_GEOCODE = False
 
 GEOADS_ASYNC = False
 
