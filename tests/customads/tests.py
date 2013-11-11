@@ -8,6 +8,7 @@ from django.test import TransactionTestCase, TestCase
 from django.test.client import RequestFactory
 from django.http import Http404
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.messages.storage import default_storage
 
 from mock_django import mock_signal_receiver
 
@@ -18,7 +19,7 @@ from geoads.filters import BooleanForNumberFilter
 from geoads.models import Ad
 from geoads.utils import geocode
 
-from customads.models import TestAd, TestNumberAd
+from customads.models import TestAd, TestNumberAd, TestModeratedAd
 from customads.forms import TestAdForm
 from customads.factories import UserFactory, TestAdFactory, TestNumberAdFactory, TestAdSearchFactory, TestModeratedAdFactory
 from customads.filtersets import TestAdFilterSet
@@ -26,12 +27,27 @@ from customads.filtersets import TestAdFilterSet
 from geoads.signals import (geoad_new_interested_user, geoad_new_relevant_ad_for_search, geoad_post_save_ended)
 
 from geoads.contrib.moderation.signals import moderation_in_progress
+from geoads.contrib.moderation.views import ModeratedAdUpdateView
+
+
+class RequestFactoryWithMessages(RequestFactory):
+    def get(self, *args, **kwargs):
+        req = super(RequestFactoryWithMessages, self).get(*args, **kwargs)
+        req.session = {}
+        req._messages = default_storage(req)
+        return req
+
+    def post(self, *args, **kwargs):
+        req = super(RequestFactoryWithMessages, self).post(*args, **kwargs)
+        req.session = {}
+        req._messages = default_storage(req)
+        return req
 
 
 class GeoadsBaseTestCase(TransactionTestCase):
 
     def setUp(self):
-        self.factory = RequestFactory()
+        self.factory = RequestFactoryWithMessages()
         
 class AdDeleteViewTestCase(GeoadsBaseTestCase):
 
@@ -102,7 +118,6 @@ class AdUpdateViewTestCase(GeoadsBaseTestCase):
         request.user = user
         view = views.AdUpdateView.as_view(model=TestAd, form_class=TestAdForm)
         self.assertRaises(Http404, view, request, pk=test_ad.pk)
-        #self.assertEqual(response.status_code, 301)
 
 
 class AdSearchAndMoreViewTestCase(GeoadsBaseTestCase):
@@ -122,13 +137,23 @@ class AdSearchAndMoreViewTestCase(GeoadsBaseTestCase):
         self.assertTrue(isinstance(response.context_data['filter'], AdFilterSet))
 
     def test_filterads(self):
+        # Filter without results
+        request = self.factory.get('/', data={'brand': 'nobrand'})
+        user = UserFactory.create()
+        request.user = user
+        response = views.AdSearchView.as_view(model=TestAd, no_results_msg="no", results_msg="yes")(request)
+        # Be sure that no is in messages 
+        self.assertTrue('no' in [i.message for i in request._messages])
+        # Filter with results
         test_ads = TestAdFactory.create_batch(12)
         # client try to filter search
         # and get at lead one result
         request = self.factory.get('/', data={'brand': test_ads[0].brand})
         user = UserFactory.create()
         request.user = user
-        response = views.AdSearchView.as_view(model=TestAd)(request)
+        response = views.AdSearchView.as_view(model=TestAd, no_results_msg="no", results_msg="yes")(request)
+        # Be sure that yes is in messages 
+        self.assertTrue('yes' in [i.message for i in request._messages])
         # check that we don't return initial ads
         self.assertTrue('initial_ads' not in response.context_data)
         # check that the user have a form to save it search
@@ -138,7 +163,7 @@ class AdSearchAndMoreViewTestCase(GeoadsBaseTestCase):
         request.user = user
         response = views.AdSearchView.as_view(model=TestAd)(request)
 
-    def test_create_update_read__delete_search(self):
+    def test_create_update_read_delete_search(self):
         test_ad = TestAdFactory.create()
         # here we build a search ad form
         # create
@@ -483,4 +508,18 @@ class GeoadsModerationTestCase(TestCase):
                 ad.moderated_object.approve()
                 self.assertEquals(mod_in_progress.call_count, 1)
                 self.assertEquals(save_ended.call_count, 1)
+
+    def test_ad_update(self):
+        self.factory = RequestFactory()
+        test_ad = TestModeratedAdFactory.create()
+        request = self.factory.get('/')
+        # When user is the ad owner
+        request.user = test_ad.user
+        response = ModeratedAdUpdateView.as_view(model=TestModeratedAd, form_class=TestAdForm)(request, pk=test_ad.pk)
+        self.assertEqual(response.status_code, 200)
+        # When user is not the ad owner
+        other_user = UserFactory()
+        request.user = other_user
+        view = ModeratedAdUpdateView.as_view(model=TestModeratedAd, form_class=TestAdForm)
+        self.assertRaises(Http404, view, request, pk=test_ad.pk)  
 
