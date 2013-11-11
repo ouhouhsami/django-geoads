@@ -6,7 +6,6 @@ All test are done synchronously in tests (as python-rq is allready tested)
 """
 from django.test import TransactionTestCase, TestCase
 from django.test.client import RequestFactory
-from django.test.utils import override_settings
 from django.http import Http404
 from django.contrib.contenttypes.models import ContentType
 
@@ -85,10 +84,6 @@ class AdUpdateViewTestCase(GeoadsBaseTestCase):
         request.user = test_ad.user
         response = views.AdUpdateView.as_view(model=TestAd, form_class=TestAdForm)(request, pk=test_ad.pk)
         self.assertEqual(response.status_code, 301)
-
-    @override_settings(BYPASS_GEOCODE=False)
-    def test_owner_update_no_bypass(self):
-        self.test_owner_update()
 
     def test_not_owner_update(self):
         test_ad = TestAdFactory.create()
@@ -220,10 +215,6 @@ class AdCreateViewTestCase(GeoadsBaseTestCase):
         request.user = user
         response = views.AdCreateView.as_view(model=TestAd, form_class=TestAdForm)(request)
         self.assertEqual(response.context_data['form'].errors['user_entered_address'], [u'Indiquer une adresse valide.'])
-
-    @override_settings(BYPASS_GEOCODE=False)
-    def test_create_with_live_geocode(self):
-        self.test_create()
 
     def test_create_same_slug(self):
         user = UserFactory.create()

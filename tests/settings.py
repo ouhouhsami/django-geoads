@@ -5,8 +5,6 @@ import sys
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
-BYPASS_GEOCODE = False
-
 GEOADS_ASYNC = False
 
 #EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

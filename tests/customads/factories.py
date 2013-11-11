@@ -43,15 +43,12 @@ class BaseAdFactory(factory.django.DjangoModelFactory):
     @classmethod
     def _prepare(cls, create, **kwargs):
         user_entered_address = kwargs['user_entered_address']
-        if settings.BYPASS_GEOCODE == True:
-            location = 'POINT (2.3303780000000001 48.8683559999999986)'
-        else:
-            try:
-                geocode = Geocoder.geocode(user_entered_address.encode('ascii', 'ignore'))
-                coordinates = geocode[0].coordinates
-                location = str(Point(coordinates[1], coordinates[0], srid=900913))
-            except:
-                location = 'POINT (2.3316097000000000 48.8002050999999994)'
+        try:
+            geocode = Geocoder.geocode(user_entered_address.encode('ascii', 'ignore'))
+            coordinates = geocode[0].coordinates
+            location = str(Point(coordinates[1], coordinates[0], srid=900913))
+        except:
+            location = 'POINT (2.3316097000000000 48.8002050999999994)'
         test_ad = super(BaseAdFactory, cls)._prepare(create, location=location, **kwargs)
         return test_ad
 

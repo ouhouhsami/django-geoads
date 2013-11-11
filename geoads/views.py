@@ -53,7 +53,7 @@ class AdSearchView(ListView):
     #BUG: paginate_by = 14 doesn't work, I use django-paginator
 
     def dispatch(self, request, *args, **kwargs):
-        # here, dispatch according to the request.method and url args/kwargs
+        # Dispatch according to the request.method and url args/kwargs
 
         if 'search_id' in kwargs:
             self.search_id = kwargs['search_id']
@@ -74,8 +74,6 @@ class AdSearchView(ListView):
                 return self.filter_ads(request, *args, **kwargs)
             else:
                 return self.home(request, *args, **kwargs)
-
-        #return super(AdSearchView, self).dispatch(request, *args, **kwargs)
 
     def home(self, request, *args, **kwargs):
         # request.method == 'GET' and request.GET only contains pages and sorting
@@ -111,9 +109,6 @@ class AdSearchView(ListView):
     @method_decorator(login_required)
     def create_search(self, request, *args, **kwargs):
         # request.method == 'POST' and search_id is None
-        # save the search
-        #profile_detail_url = account_url(self.request)
-        # return the results
         self.ad_search_form = AdSearchForm(request.POST)
         if self.ad_search_form.is_valid():
             self.ad_search_form.user = request.user
@@ -125,15 +120,8 @@ class AdSearchView(ListView):
             self.search_id = self.ad_search.id
             messages.add_message(self.request, messages.INFO,
                 _(u'Votre recherche a bien été sauvegardée dans votre compte</a>.'), fail_silently=True)
-                # when creation, we need to save related ads to ad_search_results
-            #self.update_ad_search_results()
             return HttpResponseRedirect(reverse('search',
                 kwargs={'search_id': self.search_id}))
-        # this would be better no ?
-        #self._q = QueryDict(self.ad_search.search)
-        #self.object_list = self._get_queryset()
-        #context = self.get_context_data(object_list=self.object_list)
-        #return self.render_to_response(context)
 
     @method_decorator(login_required)
     def update_search(self, request, *args, **kwargs):
@@ -214,7 +202,7 @@ class AdSearchUpdateView(LoginRequiredMixin, UpdateView):
     success_url = settings.LOGIN_REDIRECT_URL
 
 
-class AdSearchDeleteView(DeleteView): #LoginRequiredMixin, 
+class AdSearchDeleteView(DeleteView):
     """
     Class based delete search ad
     """
@@ -229,13 +217,6 @@ class AdSearchDeleteView(DeleteView): #LoginRequiredMixin,
         if not obj.user == self.request.user:
             raise Http404
         return obj
-
-    #def get_success_url(self):
-    #    """ Redirect to user account page """
-    #    messages.add_message(self.request, messages.INFO,
-    #        _(u'Votre recherche a bien été supprimée.'), fail_silently=True)
-    #    #return account_url(self.request)
-    #    return HttpResponseRedirect(reverse('search'))
 
 
 class AdDetailView(DetailView):
@@ -291,13 +272,9 @@ class AdCreateView(LoginRequiredMixin, CreateView):
             self.object = form.save(commit=False)
             self.object.user = self.request.user
             user_entered_address = form.cleaned_data['user_entered_address']
-            if settings.BYPASS_GEOCODE is True:
-                self.object.address = u"[{u'geometry': {u'location': {u'lat': 48.868356, u'lng': 2.330378}, u'viewport': {u'northeast': {u'lat': 48.8697049802915, u'lng': 2.331726980291502}, u'southwest': {u'lat': 48.8670070197085, u'lng': 2.329029019708498}}, u'location_type': u'ROOFTOP'}, u'address_components': [{u'long_name': u'1', u'types': [u'street_number'], u'short_name': u'1'}, {u'long_name': u'Rue de la Paix', u'types': [u'route'], u'short_name': u'Rue de la Paix'}, {u'long_name': u'2nd arrondissement of Paris', u'types': [u'sublocality', u'political'], u'short_name': u'2nd arrondissement of Paris'}, {u'long_name': u'Paris', u'types': [u'locality', u'political'], u'short_name': u'Paris'}, {u'long_name': u'Paris', u'types': [u'administrative_area_level_2', u'political'], u'short_name': u'75'}, {u'long_name': u'\xcele-de-France', u'types': [u'administrative_area_level_1', u'political'], u'short_name': u'IdF'}, {u'long_name': u'France', u'types': [u'country', u'political'], u'short_name': u'FR'}, {u'long_name': u'75002', u'types': [u'postal_code'], u'short_name': u'75002'}], u'formatted_address': u'1 Rue de la Paix, 75002 Paris, France', u'types': [u'street_address']}]"
-                self.object.location = 'POINT (2.3303780000000001 48.8683559999999986)'
-            else:
-                geo_info = geocode(user_entered_address.encode('ascii', 'ignore'))
-                self.object.address = geo_info['address']
-                self.object.location = geo_info['location']
+            geo_info = geocode(user_entered_address.encode('ascii', 'ignore'))
+            self.object.address = geo_info['address']
+            self.object.location = geo_info['location']
             self.object.save()
             picture_formset.instance = self.object
             picture_formset.save()
@@ -339,14 +316,9 @@ class AdUpdateView(LoginRequiredMixin, UpdateView):
         if picture_formset.is_valid():
             self.object = form.save(commit=False)
             user_entered_address = form.cleaned_data['user_entered_address']
-            if settings.BYPASS_GEOCODE == True:
-                self.object.address = u"[{u'geometry': {u'location': {u'lat': 48.868356, u'lng': 2.330378}, u'viewport': {u'northeast': {u'lat': 48.8697049802915, u'lng': 2.331726980291502}, u'southwest': {u'lat': 48.8670070197085, u'lng': 2.329029019708498}}, u'location_type': u'ROOFTOP'}, u'address_components': [{u'long_name': u'1', u'types': [u'street_number'], u'short_name': u'1'}, {u'long_name': u'Rue de la Paix', u'types': [u'route'], u'short_name': u'Rue de la Paix'}, {u'long_name': u'2nd arrondissement of Paris', u'types': [u'sublocality', u'political'], u'short_name': u'2nd arrondissement of Paris'}, {u'long_name': u'Paris', u'types': [u'locality', u'political'], u'short_name': u'Paris'}, {u'long_name': u'Paris', u'types': [u'administrative_area_level_2', u'political'], u'short_name': u'75'}, {u'long_name': u'\xcele-de-France', u'types': [u'administrative_area_level_1', u'political'], u'short_name': u'IdF'}, {u'long_name': u'France', u'types': [u'country', u'political'], u'short_name': u'FR'}, {u'long_name': u'75002', u'types': [u'postal_code'], u'short_name': u'75002'}], u'formatted_address': u'1 Rue de la Paix, 75002 Paris, France', u'types': [u'street_address']}]"
-                self.object.location = 'POINT (2.3303780000000001 48.8683559999999986)'
-            else:
-                address = user_entered_address.encode('ascii', 'ignore')
-                geo_info = geocode(user_entered_address.encode('ascii', 'ignore'))
-                self.object.address = geo_info['address']
-                self.object.location = geo_info['location']
+            geo_info = geocode(user_entered_address.encode('ascii', 'ignore'))
+            self.object.address = geo_info['address']
+            self.object.location = geo_info['location']
             self.object.save()
             picture_formset.instance = self.object
             picture_formset.save()
@@ -413,12 +385,6 @@ class AdPotentialBuyersView(LoginRequiredMixin, ListView):
         # should return a list of buyers, in fact AdSearch instances
         self.pk = self.kwargs['pk']
         content_type = ContentType.objects.get_for_model(self.model)
-
-        # Below an implementation that could be used to return form
-        # AdSearchResultFormSet = modelformset_factory(AdSearchResult, form=AdSearchResultContactForm)
-        # formset = AdSearchResultFormSet(queryset=AdSearchResult.objects.filter(object_pk=self.pk).filter(content_type=content_type))
-        # return formset
-
         queryset = self.search_model.objects.filter(object_pk=self.pk)\
             .filter(content_type=content_type).filter(ad_search__public=True)
         queryset.contacted = queryset.filter(contacted=True)

@@ -92,16 +92,11 @@ class BaseAdForm(forms.ModelForm):
         # don't know how to improve this for the moment
         # and just have it computed one time
         data = self.cleaned_data['user_entered_address']
-        if settings.BYPASS_GEOCODE is True:
-            if data == 'fkjfkjfkjfkj':  # hook to not use BYPASS_GEOCODE
-                raise forms.ValidationError(u"Indiquer une adresse valide.")
-            return data
-        else:
-            try:
-                geocode(data.encode('ascii', 'ignore'))
-            except:  # TODO: create GeocodeError
-                raise forms.ValidationError(u"Indiquer une adresse valide.")
-            return data
+        try:
+            geocode(data.encode('ascii', 'ignore'))
+        except:  # TODO: create GeocodeError
+            raise forms.ValidationError(u"Indiquer une adresse valide.")
+        return data
 
     class Meta:
         model = Ad
