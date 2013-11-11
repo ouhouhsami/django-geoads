@@ -24,7 +24,7 @@ from customads.forms import TestAdForm
 from customads.factories import UserFactory, TestAdFactory, TestNumberAdFactory, TestAdSearchFactory, TestModeratedAdFactory
 from customads.filtersets import TestAdFilterSet
 
-from geoads.signals import (geoad_new_interested_user, geoad_new_relevant_ad_for_search, geoad_post_save_ended)
+from geoads.signals import (geoad_user_message, geoad_new_interested_user, geoad_new_relevant_ad_for_search, geoad_post_save_ended)
 
 from geoads.contrib.moderation.signals import moderation_in_progress
 from geoads.contrib.moderation.views import ModeratedAdUpdateView
@@ -206,13 +206,15 @@ class AdDetailViewTestCase(GeoadsBaseTestCase):
         response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
 
     def test_send_message(self):
-        test_ad = TestAdFactory.create()
-        user = UserFactory.create()
-        request = self.factory.post('/', data={'message': 'Hi buddy !'})
-        # verify mail is sent
-        request.user = user
-        response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
-
+        with mock_signal_receiver(geoad_user_message) as user_message:
+            test_ad = TestAdFactory.create()
+            user = UserFactory.create()
+            request = self.factory.post('/', data={'message': 'Hi buddy !'})
+            request.user = user
+            response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
+            # verify mail is sent
+            self.assertEquals(user_message.call_count, 1)
+            
 
 class AdCreateViewTestCase(GeoadsBaseTestCase):
 
