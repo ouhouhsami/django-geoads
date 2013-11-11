@@ -205,12 +205,13 @@ class AdDetailViewTestCase(GeoadsBaseTestCase):
         request = self.factory.get('/')
         response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
 
-    #def test_send_message(self):
-    #    test_ad = TestAdFactory.create()
-    #    user = UserFactory.create()
-    #    request = self.factory.post('/', data={'message': 'Hi buddy !'})
-    #    request.user = user
-    #    response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
+    def test_send_message(self):
+        test_ad = TestAdFactory.create()
+        user = UserFactory.create()
+        request = self.factory.post('/', data={'message': 'Hi buddy !'})
+        # verify mail is sent
+        request.user = user
+        response = views.AdDetailView.as_view(model=TestAd)(request, pk=test_ad.pk)
 
 
 class AdCreateViewTestCase(GeoadsBaseTestCase):
@@ -334,7 +335,6 @@ class UtilsTestCase(GeoadsBaseTestCase):
         geo = geocode('13 place d\'Aligre Paris')
         self.assertTrue('address' in geo)
         self.assertTrue('location' in geo)
-
 
 
 class GeoadsSignalsTestCase(GeoadsBaseTestCase):
