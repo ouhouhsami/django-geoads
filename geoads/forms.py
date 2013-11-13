@@ -5,7 +5,6 @@ Ads app forms module
 This module provides default forms to work with Ad, AdContact, AdSearch forms.
 """
 from django import forms
-from django.conf import settings
 from django.http import QueryDict
 
 from geoads.models import AdPicture, AdContact, AdSearch, AdSearchResult, Ad

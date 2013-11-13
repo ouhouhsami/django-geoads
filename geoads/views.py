@@ -13,18 +13,18 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
-from django.http import QueryDict, Http404, HttpResponseRedirect
-from django.shortcuts import render_to_response, redirect
-from django.template import RequestContext
+from django.http import QueryDict, Http404, HttpResponseRedirect, HttpResponseForbidden
+from django.shortcuts import redirect
 from django.utils.translation import ugettext as _
 from django.utils.translation import ungettext
 from django.utils.decorators import method_decorator
-from django.views.generic import (ListView, DetailView, CreateView, UpdateView,
-    DeleteView, TemplateView, FormView)
+from django.views.generic import (ListView, DetailView, CreateView, UpdateView, View,
+                                  DeleteView, TemplateView, FormView)
+from django.views.generic.detail import SingleObjectMixin
 
 from geoads.models import Ad, AdSearch, AdPicture, AdSearchResult
 from geoads.forms import (AdContactForm, AdPictureForm, AdSearchForm,
-    AdSearchUpdateForm, AdSearchResultContactForm, BaseAdForm)
+                          AdSearchUpdateForm, AdSearchResultContactForm, BaseAdForm)
 from geoads.utils import geocode
 from geoads.signals import geoad_vendor_message, geoad_user_message
 
@@ -219,42 +219,63 @@ class AdSearchDeleteView(DeleteView):
         return obj
 
 
-class AdDetailView(DetailView):
+class AdDisplay(DetailView):
+    context_object_name = 'ad'
+    template_name = 'geoads/view.html'
+    contact_form = AdContactForm    
+
+    def get_context_data(self, **kwargs):
+        context = super(AdDisplay, self).get_context_data(**kwargs)
+        context['contact_form'] = self.contact_form()
+        if 'sent_mail' in self.request.session and self.get_object() in self.request.session['sent_mail']: 
+            context['sent_mail'] = True
+        else:
+            context['sent_mail'] = False
+        return context
+
+
+class AdMessage(SingleObjectMixin, FormView):
+    template_name = 'geoads/view.html'
+
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated():
+            return HttpResponseForbidden()
+        self.object = self.get_object()
+        self.request = request
+        return super(AdMessage, self).post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        geoad_user_message.send(sender=Ad, ad=self.object, user=self.request.user, message=form.cleaned_data['message'])
+        messages.add_message(self.request, messages.INFO,
+                _(u'Votre message a bien été envoyé.'), fail_silently=True)
+
+        # Use session to store already sent mails
+        if not 'sent_mail' in self.request.session or not self.request.session['sent_mail']:
+            self.request.session['sent_mail'] = [self.object]
+        else:
+            sent_mail_list = self.request.session['sent_mail']
+            sent_mail_list.append(self.object)
+            self.request.session['sent_mail'] = sent_mail_list
+
+        return super(AdMessage, self).form_valid(form)
+
+    def get_success_url(self):
+        return self.object.get_absolute_url()
+
+
+class AdDetailView(View):
     """
     Class based detail ad
     """
     model = Ad  # changed in urls
-    context_object_name = 'ad'
-    template_name = 'geoads/view.html'
-    contact_form = AdContactForm
+    contact_form = AdContactForm     
+    def get(self, request, *args, **kwargs):
+        view = AdDisplay.as_view(model=self.model, contact_form=self.contact_form)
+        return view(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        context = super(AdDetailView, self).get_context_data(**kwargs)
-        context['contact_form'] = self.contact_form()
-        context['sent_mail'] = False
-        return context
-
-    @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
-        """ used for contact message between users """
-        contact_form = self.contact_form(request.POST)
-        sent_mail = False
-        if contact_form.is_valid():
-            instance = contact_form.save(commit=False)
-            instance.content_object = self.get_object()
-            instance.user = request.user
-            instance.save()
-            geoad_user_message.send(sender=Ad, ad=self.get_object(), user=instance.user, message=instance.message)
-            sent_mail = True
-            messages.add_message(request, messages.INFO,
-                _(u'Votre message a bien été envoyé.'), fail_silently=True)
-        return render_to_response(self.template_name, {'ad': self.get_object(),
-                                  'contact_form': contact_form,
-                                  'sent_mail': sent_mail},
-                                  context_instance=RequestContext(request))
-
-    def get_queryset(self):
-        return self.model.objects.all()
+        view = AdMessage.as_view(model=self.model, form_class=self.contact_form)
+        return view(request, *args, **kwargs)
 
 
 class AdCreateView(LoginRequiredMixin, CreateView):
