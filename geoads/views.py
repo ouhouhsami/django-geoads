@@ -22,7 +22,10 @@ from django.views.generic import (ListView, DetailView, CreateView, UpdateView, 
                                   DeleteView, TemplateView, FormView)
 from django.views.generic.detail import SingleObjectMixin
 
+from django_filters.views import FilterView
+
 from geoads.models import Ad, AdSearch, AdPicture, AdSearchResult
+
 from geoads.forms import (AdContactForm, AdPictureForm, AdSearchForm,
                           AdSearchUpdateForm, AdSearchResultContactForm, BaseAdForm)
 from geoads.utils import geocode
@@ -34,6 +37,49 @@ class LoginRequiredMixin(object):
     def dispatch(self, request, *args, **kwargs):
         return super(LoginRequiredMixin, self).dispatch(request, *args, **kwargs)
 
+
+class DefaultAdListView(FilterView):
+    template_name = 'geoads/search.html'
+
+
+class AdListView(FilterView):
+    model = Ad
+    
+    def get(self, request, *args, **kwargs):
+        # Used to reach the home page 
+        # or view a specific search
+        # This search can come from a saved search
+        # or just filtering of ads
+        if 'search_id' in self.request.GET:
+            ad_search = AdSearch.objects.get(id=self.request.GET['search_id'])
+            if ad_search.user != request.user:
+                return HttpResponseForbidden()
+            params = QueryDict(ad_search.search).urlencode()
+            self.request.session['ad_search'] = ad_search
+            return HttpResponseRedirect(request.path+"?%s" % params)
+        view = DefaultAdListView.as_view(model=self.model, filterset_class = self.model.filterset())
+        return view(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        # Only for creating a search
+        # or updating an existing one
+        # We store it in session: self.request.session['search_id']
+        q = request.GET.copy()
+        [q.pop(elt[0]) for elt in q.lists() if elt[1] == [u'']]
+        search = q.urlencode()
+        if 'ad_search' not in request.session:
+            # Create a search
+            ad_search = AdSearch(user=request.user, search=search, public=True)
+            ad_search.content_type = ContentType.objects.get_for_model(self.model)
+            ad_search.save()
+        else:
+            # or just update it
+            ad_search = self.request.session['ad_search']
+            if ad_search.user != request.user:
+                return HttpResponseForbidden()
+            ad_search.search = search
+            ad_search.save()
+        return HttpResponseRedirect(request.path+"?search_id=%s" % ad_search.id)
 
 class AdSearchView(ListView):
     """
